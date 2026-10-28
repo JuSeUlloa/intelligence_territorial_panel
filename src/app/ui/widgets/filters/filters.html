@@ -1,0 +1,135 @@
+<div
+  class="card flex min-w-0 w-full flex-col px-4 py-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
+  role="search"
+  aria-label="Filtros del panel"
+>
+  <div class="flex items-center justify-between sm:w-fit">
+    <div class="flex items-center gap-2 self-center">
+      <i class="fa-solid fa-filter text-muted" aria-hidden="true"></i>
+      <span class="text-sm font-semibold">Filtros</span>
+    </div>
+    <button
+      type="button"
+      class="btn btn-secondary h-8 w-9 justify-self-end sm:hidden"
+      (click)="toggle()"
+      [attr.aria-expanded]="abierto()"
+      [attr.aria-label]="abierto() ? 'Ocultar filtros' : 'Mostrar filtros'"
+    >
+      <i
+        class="fa-solid fa-chevron-down rotate-180"
+        [class.rotate-0]="abierto()"
+        aria-hidden="true"
+      ></i>
+    </button>
+  </div>
+  <span class="hidden h-8 w-px self-center bg-border sm:block" aria-hidden="true"></span>
+  <div
+    class="sm:flex sm:min-w-0 sm:flex-1 sm:flex-wrap sm:items-end sm:gap-3"
+    [class]="abierto() ? 'grid gap-3 sm:gap-3' : 'hidden'"
+  >
+    <label class="block sm:w-64">
+      <span class="mb-1 block text-xs font-medium text-subtle">Municipio</span>
+      <div class="relative">
+        <i
+          class="fa-solid fa-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-subtle"
+          aria-hidden="true"
+        ></i>
+        <input
+          type="text"
+          class="input h-9 w-full pl-8 pr-8"
+          placeholder="Escribe 3 letras…"
+          autocomplete="off"
+          role="combobox"
+          [attr.aria-expanded]="typeaheadAbierto() && sugerencias.length > 0"
+          [value]="consulta()"
+          (input)="onConsultaInput($event)"
+          (keydown)="onConsultaKeydown($event)"
+          (focus)="typeaheadAbierto.set(true)"
+        />
+        @if (consulta() || municipioElegido()) {
+          <button
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-subtle hover:text-foreground"
+            aria-label="Limpiar municipio"
+            (click)="limpiarSeleccion()"
+          >
+            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
+          </button>
+        }
+        @if (typeaheadAbierto() && sugerencias.length > 0) {
+          <div
+            class="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-md"
+            role="listbox"
+            aria-label="Sugerencias de municipio"
+          >
+            @for (opcion of sugerencias; track opcion.nombre + opcion.departamento) {
+              <button
+                type="button"
+                class="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-xs hover:bg-surface-2"
+                (click)="elegirSugerencia(opcion)"
+                role="option"
+              >
+                <span class="truncate font-medium">{{ opcion.nombre }}</span>
+                <span class="shrink-0 text-[10px] text-subtle">{{ opcion.departamento ?? '' }}</span>
+              </button>
+            }
+          </div>
+        } @else if (typeaheadAbierto() && consulta().length >= 3 && sugerencias.length === 0) {
+          <div class="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-surface px-3 py-2 text-[11px] text-subtle shadow-md">
+            Sin municipios que empiecen por «{{ consulta() }}».
+          </div>
+        }
+      </div>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium text-subtle">Mes</span>
+      <select class="input h-9 w-full sm:w-44" [value]="mes() ?? ''" (change)="onMesChange($event)">
+        <option value="">Último disponible</option>
+        @for (mes of meses; track mes) {
+          <option [value]="mes">{{ nombresMes[mes] ?? mes }}</option>
+        }
+      </select>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium text-subtle">Nivel riesgo</span>
+      <select class="input h-9 w-full sm:w-44" [value]="riesgo()" (change)="onRiesgoChange($event)">
+        @for (nivel of nivelesRiesgo; track nivel.value) {
+          <option [value]="nivel.value">{{ nivel.label }}</option>
+        }
+      </select>
+    </label>
+    <div class="flex flex-col items-stretch gap-2 sm:mt-[20px] sm:flex-row sm:flex-none">
+      <button
+        type="button"
+        [class]="
+          'btn h-9 w-full flex-1 whitespace-nowrap border sm:w-auto ' +
+          (verPrediccion
+            ? ' btn-primary ring-2 ring-primary/50 shadow-lg shadow-primary/40 animate-pulse'
+            : ' btn-secondary')
+        "
+        [attr.aria-pressed]="verPrediccion"
+        (click)="togglePrediccion.emit()"
+      >
+        <i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>
+         Mes en Curso
+      </button>
+      <button type="button" class="btn btn-primary h-9 w-full flex-1 whitespace-nowrap sm:w-auto" (click)="onApply()">
+        <i class="fa-solid fa-check" aria-hidden="true"></i>
+        Aplicar
+      </button>
+      <button type="button" class="btn btn-secondary h-9 w-full flex-1 whitespace-nowrap sm:w-auto" (click)="onReset()">
+        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+        Limpiar
+      </button>
+    </div>
+    @if (applied()) {
+      <span
+        class="self-center justify-self-end sm:ml-auto inline-flex items-center gap-2 rounded-full bg-primary-soft px-4 py-2 text-sm font-semibold text-primary"
+        role="status"
+      >
+        <i class="fa-solid fa-circle-check text-base" aria-hidden="true"></i>
+        Filtros aplicados
+      </span>
+    }
+  </div>
+</div>

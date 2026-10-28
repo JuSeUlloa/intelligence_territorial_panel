@@ -1,0 +1,10 @@
+
+
+.sector-torta {
+  cursor: pointer;
+  transition: filter 150ms ease;
+}
+
+.sector-torta:hover {
+  filter: brightness(1.07);
+}

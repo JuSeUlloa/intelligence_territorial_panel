@@ -1,12 +1,11 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-
+import { Component } from "@angular/core";
+import { RouterOutlet } from "@angular/router";
+import { Header } from "./ui/container/header/header";
 @Component({
-  selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  selector: "app-root",
+  imports: [RouterOutlet, Header],
+  templateUrl: "./app.html",
+  styleUrl: "./app.css"
 })
 export class App {
-  protected readonly title = signal('intelligence_territorial_panel');
 }

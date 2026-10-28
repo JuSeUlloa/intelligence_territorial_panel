@@ -1,0 +1,344 @@
+<div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+  <section
+    class="card flex flex-col px-3 py-2 shadow-sm lg:ml-2"
+    aria-label="Cambio de nivel de riesgo entre meses"
+  >
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex min-w-0 flex-col">
+        <span class="text-sm font-semibold">Cambios de nivel</span>
+        <span class="text-[10px] text-subtle">Mes anterior → último · ojo: detalle · click: mapa</span>
+        <span class="text-[10px] text-subtle">{{ alertasFiltradas.length }} / {{ alertas.length }} municipios</span>
+      </div>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <label class="flex items-center gap-1 text-[10px] text-subtle">
+          Ver
+          <select
+            class="input h-7 w-14 py-0 text-[10px]"
+            [value]="alertasPorPaginaSeleccion"
+            (change)="onAlertasPorPaginaChange($event)"
+            aria-label="Registros por página en cambios de nivel"
+          >
+            <option value="10">10</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <div class="flex items-center gap-1 rounded-lg border border-border bg-surface-2/40 p-0.5">
+          <button
+            type="button"
+            class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            [style.background]="colores[1]"
+            [style.color]="legible(colores[1])"
+            [disabled]="alertasPaginaVisible <= 1"
+            (click)="paginaPrevAlertas()"
+            aria-label="Página anterior"
+          >
+            ‹
+          </button>
+          <span
+            class="rounded-md px-2.5 py-1 text-[10px] font-semibold leading-none"
+            [style.background]="colores[2]"
+            [style.color]="legible(colores[2])"
+          >
+            Pág. {{ alertasPaginaVisible }} / {{ alertasTotalPaginas }}
+          </span>
+          <button
+            type="button"
+            class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            [style.background]="colores[1]"
+            [style.color]="legible(colores[1])"
+            [disabled]="alertasPaginaVisible >= alertasTotalPaginas"
+            (click)="paginaNextAlertas()"
+            aria-label="Página siguiente"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+      <select
+        class="input h-7 w-24 py-0 text-[10px]"
+        [value]="direccionSeleccion"
+        (change)="onDireccionChange($event)"
+        aria-label="Filtrar por dirección del cambio"
+      >
+        <option value="todos">Todos</option>
+        <option value="subidas">Escalados</option>
+        <option value="bajadas">Bajados</option>
+      </select>
+      @if (vista === 'departamento') {
+        <select
+          class="input h-7 w-28 py-0 text-[10px]"
+          [value]="departamentoSeleccion"
+          (change)="onDepartamentoChange($event)"
+          aria-label="Filtrar por departamento"
+        >
+          <option value="todos">Todos los dep.</option>
+          @for (departamento of departamentosAlertas; track departamento) {
+            <option [value]="departamento">{{ departamento }}</option>
+          }
+        </select>
+      }
+    </div>
+    @if (alertasFiltradas.length === 0) {
+      <p class="mt-2 text-center text-xs text-subtle">
+        @if (alertas.length === 0) {
+          Sin cambios de nivel entre meses.
+        } @else {
+          Sin municipios con ese filtro.
+        }
+      </p>
+    } @else {
+      <div class="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+        @if (alertasPaginaSubidas.length > 0) {
+          <span class="block text-[10px] text-subtle">⚠️ Escalados ({{ subidas.length }})</span>
+        }
+        @for (alerta of alertasPaginaSubidas; track alerta.municipio) {
+          <div
+            data-fila
+            class="flex w-full items-center justify-between gap-2 rounded-lg border border-border py-1.5 pl-2.5 pr-1.5 text-[11px] transition-colors hover:bg-surface-2"
+            [style.border-left-color]="colorAtencion(alerta.a.rank)"
+            [style.border-left-width.px]="3"
+            (mouseleave)="cerrarDetalle()"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 py-0.5 text-left"
+              (click)="elegir(alerta)"
+            >
+              <span class="flex min-w-0 flex-col">
+                <span class="truncate font-semibold">{{ alerta.municipio }}</span>
+                <span class="truncate text-[10px] text-subtle">{{ alerta.departamento }}</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-1.5">
+                <span class="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[9px] leading-none text-subtle">
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    [style.background]="colorAtencion(alerta.de.rank)"
+                    aria-hidden="true"
+                  ></span>
+                  {{ alerta.de.nivel }}
+                </span>
+                <span class="text-[10px] text-subtle">→</span>
+                <button
+                  type="button"
+                  class="shrink-0 cursor-pointer rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none transition-transform hover:scale-105"
+                  [style.background]="colorAtencion(alerta.a.rank)"
+                  [style.color]="legible(colorAtencion(alerta.a.rank))"
+                  (click)="abrirDetalleAlerta($event, alerta)"
+                  aria-label="Ver detalle del cambio"
+                >
+                  {{ alerta.a.nivel }}
+                </button>
+              </span>
+              <span class="shrink-0 text-[9px] text-subtle">{{ alerta.a.etiqueta }}</span>
+            </button>
+          </div>
+        }
+        @if (alertasPaginaBajadas.length > 0) {
+          <span class="block text-[10px] text-subtle">⬇️ Bajados ({{ bajadas.length }})</span>
+        }
+        @for (alerta of alertasPaginaBajadas; track alerta.municipio) {
+          <div
+            data-fila
+            class="flex w-full items-center justify-between gap-2 rounded-lg border border-border py-1.5 pl-2.5 pr-1.5 text-[11px] transition-colors hover:bg-surface-2"
+            [style.border-left-color]="colorAtencion(alerta.a.rank)"
+            [style.border-left-width.px]="3"
+            (mouseleave)="cerrarDetalle()"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 py-0.5 text-left"
+              (click)="elegir(alerta)"
+            >
+              <span class="flex min-w-0 flex-col">
+                <span class="truncate font-semibold">{{ alerta.municipio }}</span>
+                <span class="truncate text-[10px] text-subtle">{{ alerta.departamento }}</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-1.5">
+                <span class="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[9px] leading-none text-subtle">
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    [style.background]="colorAtencion(alerta.de.rank)"
+                    aria-hidden="true"
+                  ></span>
+                  {{ alerta.de.nivel }}
+                </span>
+                <span class="text-[10px] text-subtle">→</span>
+                <button
+                  type="button"
+                  class="shrink-0 cursor-pointer rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none transition-transform hover:scale-105"
+                  [style.background]="colorAtencion(alerta.a.rank)"
+                  [style.color]="legible(colorAtencion(alerta.a.rank))"
+                  (click)="abrirDetalleAlerta($event, alerta)"
+                  aria-label="Ver detalle del cambio"
+                >
+                  {{ alerta.a.nivel }}
+                </button>
+              </span>
+              <span class="shrink-0 text-[9px] text-subtle">{{ alerta.a.etiqueta }}</span>
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+  <section
+    class="card flex flex-col px-3 py-2 shadow-sm lg:mr-2"
+    aria-label="Puntos de atención del mes en curso"
+  >
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex min-w-0 flex-col">
+        <span class="text-sm font-semibold">Puntos de atención</span>
+        <span class="text-[10px] text-subtle">Prioridades y zonas sin reporte · ojo: detalle · click: mapa</span>
+        <span class="text-[10px] text-subtle">
+          {{ listaAtencionTotal.length }} municipios
+          @if (mesRevisado; as mes) {
+            · mes en revisión: {{ mes }}
+          }
+        </span>
+      </div>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <label class="flex items-center gap-1 text-[10px] text-subtle">
+          Ver
+          <select
+            class="input h-7 w-14 py-0 text-[10px]"
+            [value]="atencionPorPaginaSeleccion"
+            (change)="onAtencionPorPaginaChange($event)"
+            aria-label="Registros por página en puntos de atención"
+          >
+            <option value="10">10</option>
+            <option value="5">5</option>
+          </select>
+        </label>
+        <div class="flex items-center gap-1 rounded-lg border border-border bg-surface-2/40 p-0.5">
+          <button
+            type="button"
+            class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            [style.background]="colores[1]"
+            [style.color]="legible(colores[1])"
+            [disabled]="atencionPaginaVisible <= 1"
+            (click)="paginaPrevAtencion()"
+            aria-label="Página anterior"
+          >
+            ‹
+          </button>
+          <span
+            class="rounded-md px-2.5 py-1 text-[10px] font-semibold leading-none"
+            [style.background]="colores[2]"
+            [style.color]="legible(colores[2])"
+          >
+            Pág. {{ atencionPaginaVisible }} / {{ atencionTotalPaginas }}
+          </span>
+          <button
+            type="button"
+            class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            [style.background]="colores[1]"
+            [style.color]="legible(colores[1])"
+            [disabled]="atencionPaginaVisible >= atencionTotalPaginas"
+            (click)="paginaNextAtencion()"
+            aria-label="Página siguiente"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+    </div>
+    @if (listaAtencionTotal.length === 0) {
+      <p class="mt-2 text-center text-xs text-subtle">Sin municipios que requieran atención.</p>
+    } @else {
+      <div class="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+        @if (atencionHayAltoEnPagina) {
+          <span class="block text-[10px] text-subtle">🔴 En ALTO este mes ({{ atencion.elevados.length }})</span>
+        }
+        @if (atencionHayCiegoEnPagina) {
+          <span class="block text-[10px] text-subtle">
+            ⚪ Sin datos este mes ({{ atencion.ciegos.length }}) — verificar reporte
+          </span>
+        }
+        @for (fila of listaAtencionPagina; track fila.datos.codigoDane) {
+          <div
+            data-fila
+            class="flex w-full items-center justify-between gap-2 rounded-lg border border-border py-1.5 pl-2.5 pr-1.5 text-[11px] transition-colors hover:bg-surface-2"
+            [style.border-left-color]="fila.tipo === 'alto' ? colores[2] : colorAtencion(null)"
+            [style.border-left-width.px]="3"
+            (mouseleave)="cerrarDetalle()"
+          >
+            <button
+              type="button"
+              class="flex min-w-0 flex-1 cursor-pointer items-start gap-2 py-0.5 text-left"
+              (click)="elegirAtencion(fila.datos)"
+            >
+              <span
+                class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
+                [style.background]="fila.tipo === 'alto' ? colores[2] : colorAtencion(null)"
+                aria-hidden="true"
+              ></span>
+              <span class="flex min-w-0 flex-col">
+                <span class="truncate font-semibold">{{ fila.datos.municipio }}</span>
+                <span class="truncate text-[10px] text-subtle">{{ fila.datos.departamento }}</span>
+                <span class="truncate text-[10px] text-subtle">
+                  @if (fila.tipo === 'alto') {
+                    ≈ {{ formatoHurtos(fila.datos.hurtos) }} hurtos · {{ fila.datos.mesEtiqueta }}
+                  } @else {
+                    último dato: {{ fila.datos.mesEtiqueta }} · ≈
+                    {{ formatoHurtos(fila.datos.hurtos) }} hurtos
+                  }
+                </span>
+              </span>
+            </button>
+            @if (fila.tipo === 'alto') {
+              <button
+                type="button"
+                class="shrink-0 cursor-pointer rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none transition-transform hover:scale-105"
+                [style.background]="colores[2]"
+                [style.color]="legible(colores[2])"
+                (click)="abrirDetalleAtencion($event, fila)"
+                aria-label="Ver detalle del municipio"
+              >
+                ALTO
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="shrink-0 cursor-pointer rounded-full border border-border px-1.5 py-0.5 text-[9px] leading-none text-subtle transition-transform hover:scale-105"
+                (click)="abrirDetalleAtencion($event, fila)"
+                aria-label="Ver detalle del municipio"
+              >
+                sin reporte
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+</div>
+@if (detalleAbierto(); as d) {
+  <div
+    data-popup-detalle
+    class="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-surface p-3 text-xs shadow-md"
+    [style.left.px]="d.x"
+    [style.top.px]="d.y"
+    [style.border-top-color]="colores[1]"
+    [style.border-top-width.px]="3"
+    role="dialog"
+    aria-label="Detalle del municipio"
+  >
+    <strong class="font-semibold">{{ d.titulo }}</strong>
+    @if (d.subtitulo) {
+      <p class="text-[10px] text-subtle">{{ d.subtitulo }}</p>
+    }
+    <div class="mt-2 space-y-1">
+      @for (fila of d.filas; track fila.texto) {
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-subtle">{{ fila.texto }}</span>
+          <span class="font-semibold" [style.color]="fila.color ?? null">{{ fila.valor }}</span>
+        </div>
+      }
+    </div>
+    <p class="mt-2 border-t border-border pt-2 text-[9px] text-subtle">
+      El click sobre la fila enfoca el mapa.
+    </p>
+  </div>
+}

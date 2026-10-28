@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/intelligence_territorial_panel/browser",
+  "rewrites": [
+    {
+      "source": "/api/dbx/:ruta*",
+      "destination": "/api/dbx?ruta=:ruta*"
+    }
+  ]
+}

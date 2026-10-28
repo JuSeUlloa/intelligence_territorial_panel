@@ -1,0 +1,184 @@
+<button
+  type="button"
+  class="btn btn-ghost"
+  (click)="toggle()"
+  aria-controls="themes-panel"
+  [attr.aria-expanded]="open()"
+  [attr.aria-label]="open() ? 'Cerrar personalización de temas' : 'Abrir personalización de temas'"
+  title="Personalizar temas"
+>
+  <i class="fa-solid fa-palette" aria-hidden="true"></i>
+  <span class="hidden sm:inline">Personalizar</span>
+</button>
+<div
+  class="fixed inset-0 z-50"
+  [class.pointer-events-none]="!open()"
+  [attr.aria-hidden]="!open()"
+>
+  <div
+    class="absolute inset-0 bg-foreground/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out"
+    [class.opacity-0]="!open()"
+    [class.opacity-100]="open()"
+    (click)="close()"
+    aria-hidden="true"
+  ></div>
+  <aside
+    id="themes-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Personalización de temas"
+    [attr.inert]="open() ? null : ''"
+    class="absolute inset-y-0 right-0 flex w-80 max-w-[85vw] flex-col border-l border-border bg-surface shadow-lg transition-transform duration-300 ease-out"
+    [class.translate-x-0]="open()"
+    [class.translate-x-full]="!open()"
+  >
+    <header class="flex items-center justify-between border-b border-border px-5 py-4">
+      <div>
+        <h2 class="text-sm font-semibold">Personalizar</h2>
+        <p class="text-xs text-muted">Apariencia y color</p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost h-8 w-8 !p-0"
+        (click)="close()"
+        aria-label="Cerrar panel"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+      <section aria-labelledby="theme-mode-label">
+        <h3 id="theme-mode-label" class="mb-3 text-xs font-semibold uppercase tracking-wide text-subtle">
+          Apariencia
+        </h3>
+        <div class="grid grid-cols-3 gap-2">
+          @for (mode of modes; track mode.value) {
+            <button
+              type="button"
+              class="flex flex-col items-center gap-2 rounded-control border px-2 py-3 text-xs font-medium transition-colors"
+              [class.border-primary]="theme.mode() === mode.value"
+              [class.bg-primary-soft]="theme.mode() === mode.value"
+              [class.text-primary]="theme.mode() === mode.value"
+              [class.border-border-strong]="theme.mode() !== mode.value"
+              [class.text-muted]="theme.mode() !== mode.value"
+              [class.hover:bg-surface-2]="theme.mode() !== mode.value"
+              [attr.aria-pressed]="theme.mode() === mode.value"
+              (click)="theme.setMode(mode.value)"
+            >
+              @switch (mode.value) {
+                @case ('light') {
+                  <i class="fa-solid fa-sun text-xl" aria-hidden="true"></i>
+                }
+                @case ('dark') {
+                  <i class="fa-solid fa-moon text-xl" aria-hidden="true"></i>
+                }
+                @case ('system') {
+                  <i class="fa-solid fa-desktop text-xl" aria-hidden="true"></i>
+                }
+              }
+              {{ mode.label }}
+            </button>
+          }
+        </div>
+      </section>
+      <section aria-labelledby="theme-accent-label">
+        <h3 id="theme-accent-label" class="mb-3 text-xs font-semibold uppercase tracking-wide text-subtle">
+          Color de acento
+        </h3>
+        <div class="flex flex-wrap gap-3">
+          @for (accent of theme.accents; track accent.id) {
+            <button
+              type="button"
+              class="h-8 w-8 rounded-full transition-transform hover:scale-110"
+              [class.ring-2]="theme.accentId() === accent.id"
+              [class.ring-foreground]="theme.accentId() === accent.id"
+              [class.ring-offset-2]="theme.accentId() === accent.id"
+              [class.ring-offset-surface]="theme.accentId() === accent.id"
+              [style.background-color]="accentColor(accent)"
+              [attr.aria-label]="accent.label"
+              [attr.aria-pressed]="theme.accentId() === accent.id"
+              [attr.title]="accent.label"
+              (click)="theme.setAccent(accent.id)"
+            ></button>
+          }
+        </div>
+      </section>
+      <section aria-labelledby="theme-preview-label">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 id="theme-preview-label" class="text-xs font-semibold uppercase tracking-wide text-subtle">
+            Vista previa
+          </h3>
+          <button
+            type="button"
+            class="btn btn-ghost h-7 gap-1 px-2 text-xs"
+            (click)="simulateValue()"
+            title="Generar un nuevo valor"
+          >
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            Simular
+          </button>
+        </div>
+        <div class="card space-y-3 p-4">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">Indicador</span>
+            <span class="badge badge-primary">+4.2%</span>
+          </div>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs text-muted">
+              <span>Cobertura</span>
+              <span class="font-medium tabular-nums text-foreground" data-testid="preview-percent">
+                {{ previewValue() }}%
+              </span>
+            </div>
+            <div
+              class="h-2 w-full cursor-pointer overflow-hidden rounded-full bg-track"
+              role="progressbar"
+              [attr.aria-valuenow]="previewValue()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-label="Cobertura — clic para simular un nuevo valor"
+              title="Clic para simular"
+              (click)="simulateValue()"
+            >
+              <div
+                class="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
+                [style.width.%]="previewValue()"
+              ></div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="btn btn-primary flex-1 active:scale-[0.97]"
+              (click)="onPreviewAction('primary')"
+            >
+              @if (previewAction() === 'primary') {
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+                ¡Hecho!
+              } @else {
+                Primario
+              }
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary flex-1 active:scale-[0.97]"
+              (click)="onPreviewAction('secondary')"
+            >
+              @if (previewAction() === 'secondary') {
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+                ¡Hecho!
+              } @else {
+                Secundario
+              }
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <footer class="border-t border-border px-5 py-4">
+      <button type="button" class="btn btn-secondary w-full" (click)="theme.reset()">
+        Restablecer valores por defecto
+      </button>
+    </footer>
+  </aside>
+</div>

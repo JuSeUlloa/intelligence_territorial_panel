@@ -1,0 +1,93 @@
+<section class="space-y-4">
+  <app-filters
+    class="sticky top-14 z-20 mt-3 mx-2 block"
+    [meses]="meses()"
+    [verPrediccion]="verPrediccion()"
+    (applyFilters)="onFiltersApply($event)"
+    (resetFilters)="onFiltersReset()"
+    (togglePrediccion)="onTogglePrediccion()"
+    (seleccionMunicipio)="onMunicipioTypeahead($event)"
+  />
+  <app-kpi class="mb-2 block" [kpis]="kpis()" />
+  <div class="card relative mx-4 overflow-hidden">
+    @if (mapError()) {
+      <div class="flex min-h-[440px] flex-col items-center justify-center gap-3 p-8 text-center">
+        <i class="fa-solid fa-map-location-dot text-3xl text-subtle" aria-hidden="true"></i>
+        <p class="max-w-md text-sm text-muted">{{ mapError() }}</p>
+      </div>
+    } @else {
+      <div
+        #mapContainer
+        class="h-[37vh] min-h-[280px] w-full sm:h-[49vh] sm:min-h-[330px]"
+        aria-label="Mapa territorial interactivo"
+      ></div>
+      <app-geo-filter #geo class="absolute left-3 top-3 z-10" (selectionChange)="onGeoSelection($event)" />
+      @if (loading()) {
+        <div class="absolute inset-0 flex items-center justify-center bg-background/70">
+          <app-spinner size="lg" label="Cargando polígonos…" />
+        </div>
+      }
+      @if (dataError()) {
+        <div
+          class="absolute bottom-16 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger shadow-md"
+          role="alert"
+        >
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          No se pudieron cargar los polígonos desde la API .
+        </div>
+      }
+      <div class="card absolute inset-y-3 right-3 z-10 flex w-[76px] flex-col items-center gap-1 px-1.5 py-1.5 text-[10px] shadow-md sm:w-[110px] sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm">
+        @if (nivel() === 'barrio') {
+          <span class="text-center font-semibold">
+            {{ verPrediccion() ? 'Riesgo próx. mes' : 'Riesgo por barrio' }}
+          </span>
+          <span class="text-[11px] leading-none">Alto</span>
+          <span
+            class="min-h-0 w-4 flex-1 rounded-sm"
+            [style.background]="legendGradient()"
+            aria-hidden="true"
+          ></span>
+          <span class="text-[11px] leading-none">Bajo</span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-3.5 w-3.5 rounded-sm" [style.background]="legendPlain()"></span>
+            <span class="text-[11px] leading-tight">Sin predicción</span>
+          </span>
+        } @else {
+          <span class="font-semibold">
+            {{ verPrediccion() ? 'Riesgo próximo mes' : 'Riesgo' }}
+          </span>
+          <span class="text-[11px] leading-none">Alto</span>
+          <span
+            class="min-h-0 w-4 flex-1 rounded-sm"
+            [style.background]="legendGradient()"
+            aria-hidden="true"
+          ></span>
+          <span class="text-[11px] leading-none">Bajo</span>
+          <span class="flex items-center gap-1.5">
+            <span class="h-3.5 w-3.5 rounded-sm bg-[#94a3b8]"></span>
+            <span class="text-[11px] leading-tight">Sin datos</span>
+          </span>
+        }
+      </div>
+    }
+  </div>
+  <app-barras
+    class="mx-4 block"
+    [datos]="barrasDatos()"
+    [colores]="riesgoStops()"
+    [vista]="nivel()"
+    [serieMensual]="serieMensual()"
+    [torta]="conteoRiesgo()"
+    [resumen]="resumenMunicipio()"
+  />
+  <app-analisis
+    class="mx-2 mt-3 block"
+    [alertas]="alertasCambio()"
+    [atencion]="puntosAtencion()"
+    [colores]="riesgoStops()"
+    [vista]="nivel()"
+    (alertaSeleccionada)="enAlertaSeleccion($event)"
+    (atencionSeleccionada)="enAtencionSeleccion($event)"
+  />
+  <app-footer class="mx-4 mt-3 mb-4 block" />
+</section>

@@ -42,3 +42,14 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# API local (BFF de Databricks) — secretos fuera del repo
+/api/.env
+/api/.env.*
+!/api/.env.example
+/api/node_modules
+/api/local-server.mjs
+
+# Vercel (config de link de `vercel link`/`vercel dev` y caché)
+.vercel/
+.vercel

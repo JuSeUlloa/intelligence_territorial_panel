@@ -6,6 +6,23 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script>
+            (function () {
+      try {
+        var stored = localStorage.getItem('itp-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = (stored === 'light' || stored === 'dark')
+          ? stored
+          : (prefersDark ? 'dark' : 'light');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+        document.documentElement.style.colorScheme = theme;
+      } catch (e) {
+        /* localStorage no disponible: usa el tema claro por defecto */
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

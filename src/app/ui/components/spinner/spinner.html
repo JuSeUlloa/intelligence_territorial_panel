@@ -1,0 +1,26 @@
+<span
+  class="inline-flex items-center gap-2"
+  [class.flex-col]="size() === 'lg'"
+  [class.gap-3]="size() === 'lg'"
+  role="status"
+  aria-live="polite"
+  [attr.aria-label]="label() || 'Cargando'"
+>
+  <i
+    class="fa-solid fa-spinner fa-spin text-primary"
+    [class.text-sm]="size() === 'sm'"
+    [class.text-xl]="size() === 'md'"
+    [class.text-4xl]="size() === 'lg'"
+    aria-hidden="true"
+  ></i>
+  @if (label()) {
+    <span
+      class="text-muted"
+      [class.text-xs]="size() === 'sm'"
+      [class.text-base]="size() === 'lg'"
+      [class.font-medium]="size() === 'lg'"
+    >
+      {{ label() }}
+    </span>
+  }
+</span>

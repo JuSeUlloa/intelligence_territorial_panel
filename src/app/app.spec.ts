@@ -1,23 +1,35 @@
-import { TestBed } from '@angular/core/testing';
-import { App } from './app';
-
-describe('App', () => {
+import { TestBed } from "@angular/core/testing";
+import { App } from "./app";
+import { ThemeService } from "./services/theme.service";
+describe("App", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [App],
+      imports: [App]
     }).compileComponents();
   });
-
-  it('should create the app', () => {
+  it("should create the app", () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
-
-  it('should render title', async () => {
+  it("should render the header title", async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, intelligence_territorial_panel');
+    const compiled = fixture.nativeElement;
+    expect(compiled.textContent).toContain("Metodologia de Inteligencia Territorial");
+  });
+  it("should toggle between light and dark themes", async () => {
+    const fixture = TestBed.createComponent(App);
+    const theme = TestBed.inject(ThemeService);
+    const root = document.documentElement;
+    const initial = theme.isDark();
+    theme.toggle();
+    await fixture.whenStable();
+    expect(theme.isDark()).toBe(!initial);
+    expect(root.classList.contains("dark")).toBe(!initial);
+    theme.toggle();
+    await fixture.whenStable();
+    expect(theme.isDark()).toBe(initial);
+    expect(root.classList.contains("dark")).toBe(initial);
   });
 });

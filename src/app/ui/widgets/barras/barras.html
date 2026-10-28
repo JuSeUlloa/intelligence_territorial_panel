@@ -1,0 +1,504 @@
+<div class="mx-2">
+  <section
+    class="card px-4 py-3 shadow-sm"
+    aria-label="Gráfico de barras del nivel de riesgo predicho"
+  >
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold">Dispersión por nivel de Riesgo</span>
+        <span class="text-[10px] text-subtle">{{ vistaEtiqueta }}</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="hidden items-center gap-1.5 text-[10px] text-subtle min-[420px]:flex" aria-hidden="true">
+          <span>Bajo</span>
+          <span class="h-2 w-16 rounded-sm" [style.background]="textoGradiente"></span>
+          <span>Alto</span>
+        </div>
+        <label class="flex items-center gap-1.5">
+          <span class="text-[10px] text-subtle">Ver</span>
+          <select
+            class="input h-8 w-24 py-0 text-[11px]"
+            [value]="limiteSeleccion"
+            (change)="onLimiteChange($event)"
+            aria-label="Cantidad de territorios en el gráfico"
+          >
+            @for (opcion of opcionesLimite; track opcion.value) {
+              <option [value]="opcion.value">{{ opcion.label }}</option>
+            }
+          </select>
+        </label>
+        @if (tienePorMes) {
+          <label class="flex items-center gap-1.5">
+            <span class="text-[10px] text-subtle">Desglose</span>
+            <select
+              class="input h-8 w-24 py-0 text-[11px]"
+              [value]="modoDesgloseSeleccion"
+              (change)="onModoDesgloseChange($event)"
+              aria-label="Modo del desglose de las barras"
+            >
+              @for (opcion of opcionesModoDesglose; track opcion.value) {
+                <option [value]="opcion.value">{{ opcion.label }}</option>
+              }
+            </select>
+          </label>
+        }
+      </div>
+    </div>
+    @if (datos.length === 0) {
+      <p class="mt-3 text-xs text-subtle">Sin territorios para graficar.</p>
+    } @else {
+      <div class="mt-6 flex gap-2 px-1">
+        <div class="pt-4 shrink-0" aria-hidden="true">
+          <div class="flex h-60 sm:h-80 flex-col justify-between text-[10px] leading-none text-subtle">
+            <span>{{ ejeMax }}</span>
+            <span>{{ ejeMedio }}</span>
+            <span>0</span>
+          </div>
+        </div>
+        <div class="h-4 shrink-0" aria-hidden="true"></div>
+          <div
+          class="flex flex-1 gap-0 overflow-x-auto pt-4 pb-1"
+          role="img"
+          [attr.aria-label]="'Barras de riesgo de ' + datos.length + ' territorios'"
+        >
+          @for (barra of datosRender; track $index) {
+            <button
+              type="button"
+              class="columna-barras flex min-w-12 shrink-0 cursor-pointer flex-col items-center"
+              [style.width.%]="ancho()"
+              [title]="titulo(barra)"
+              (click)="alternar($event, $index)"
+              (mouseenter)="abrirEn($event, $index)"
+              (mouseleave)="siNoClick()"
+            >
+              <div class="relative flex h-60 sm:h-80 items-end self-stretch justify-center">
+              <div
+                class="flex h-full flex-col-reverse justify-start overflow-hidden rounded-t-sm"
+                [style.width.%]="anchoBarra()"
+              >
+                @for (banda of bandas(barra); track $index) {
+                  <div
+                    class="border-[0.5px] border-white/40 last:border-b-0 dark:border-white/10"
+                    [style.height.%]="banda.frac * 100"
+                    [style.background]="banda.color"
+                  ></div>
+                }
+              </div>
+              @if (barra.desglose) {
+                <span
+                  class="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] leading-none font-semibold text-foreground"
+                  [style.bottom]="'calc(' + (fraccionTotal(barra) * 100) + '% + 3px)'"
+                >
+                  {{ sumaTotal(barra) }}
+                </span>
+              } @else if (barra.rank !== null) {
+                  <span
+                    class="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] leading-none font-semibold"
+                    [style.bottom]="'calc(' + altura(barra.rank) + '% + 3px)'"
+                    [style.color]="color(barra.rank)"
+                  >
+                    {{ nivel(barra.rank) }}
+                  </span>
+                }
+              </div>
+              <span class="mt-1 w-full truncate text-center text-[10px] text-subtle">
+                {{ barra.etiqueta }}
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </section>
+  <div class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+    <section class="card px-4 py-3 shadow-sm" aria-label="Evolución mensual de las tasas">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold">Evolución mensual</span>
+          <span class="text-[10px] text-subtle">Tasa real vs tasa predicha por mes</span>
+        </div>
+        <div class="flex items-center gap-3 text-[10px] text-subtle">
+          <button
+            type="button"
+            class="flex cursor-pointer items-center gap-1.5 transition-opacity"
+            [class.opacity-35]="realOculta()"
+            (click)="alternarSerie('real')"
+            [attr.aria-pressed]="!realOculta()"
+          >
+            <span
+              class="h-0 w-5 border-t-2"
+              [class.border-subtle]="!realOculta()"
+              [class.border-border-strong]="realOculta()"
+              aria-hidden="true"
+            ></span>
+            Real
+          </button>
+          <button
+            type="button"
+            class="flex cursor-pointer items-center gap-1.5 transition-opacity"
+            [class.opacity-35]="predichaOculta()"
+            (click)="alternarSerie('predicha')"
+            [attr.aria-pressed]="!predichaOculta()"
+          >
+            <span
+              class="h-0 w-5 border-t-2"
+              [style.border-color]="predichaOculta() ? undefined : colores[2]"
+              [class.border-border-strong]="predichaOculta()"
+              aria-hidden="true"
+            ></span>
+            Predicha
+          </button>
+          <button
+            type="button"
+            class="input h-7 cursor-pointer py-0 text-[10px]"
+            [class.bg-surface-2]="aumento()"
+            (click)="alternarAumento()"
+            [attr.aria-pressed]="aumento()"
+          >
+            @if (aumento()) {
+              Escala: precisa
+            } @else {
+              Aumentar
+            }
+          </button>
+        </div>
+      </div>
+      @if (serieMensual.length === 0) {
+        <p class="mt-3 text-xs text-subtle">Sin meses para graficar.</p>
+      } @else {
+        <div class="mt-3 flex gap-2 border-t border-border pt-3">
+          <div class="flex h-44 min-w-11 flex-col justify-between text-right text-[10px] leading-none text-subtle" aria-hidden="true">
+            <span>{{ textoEje(serieMax) }}</span>
+            <span>{{ textoEje(serieMin) }}</span>
+          </div>
+          <div class="relative h-44 flex-1" role="img" [attr.aria-label]="'Tasas promedio de ' + serieMensual.length + ' meses'">
+            <div class="absolute inset-x-0 top-0 border-t border-border" aria-hidden="true"></div>
+            <div class="absolute inset-x-0 top-1/2 border-t border-border/60" aria-hidden="true"></div>
+            <div class="absolute inset-x-0 bottom-0 border-t border-border" aria-hidden="true"></div>
+            <svg
+              class="absolute inset-0 h-full w-full overflow-visible"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+            @if (bandaLineas; as banda) {
+              <polygon
+                class="pointer-events-none"
+                [attr.points]="banda"
+                [style.fill]="colores[2]"
+                fill-opacity="0.16"
+              />
+            }
+            @if (verReal) {
+                <polyline
+                  class="text-subtle"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                  vector-effect="non-scaling-stroke"
+                  [attr.points]="puntos('real').join(' ')"
+                />
+              }
+              @if (verPredicha) {
+                <polyline
+                  fill="none"
+                  stroke="transparent"
+                  stroke-width="7"
+                  vector-effect="non-scaling-stroke"
+                  [attr.points]="puntos('predicha').join(' ')"
+                  (click)="alternarSerie('predicha')"
+                  class="cursor-pointer"
+                />
+                <polyline
+                  fill="none"
+                  stroke-width="1.5"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                  vector-effect="non-scaling-stroke"
+                  [attr.stroke]="colores[2]"
+                  [attr.points]="puntos('predicha').join(' ')"
+                />
+              }
+            </svg>
+            @for (p of serieMensual; track p.anio + '-' + p.mes; let i = $index) {
+              @if (verReal && p.real !== null) {
+                <span
+                  class="punto-serie absolute h-2 w-2 -translate-x-1/2 translate-y-1/2 cursor-pointer rounded-full bg-subtle ring-2 ring-surface"
+                  [style.left.%]="puntoX(i)"
+                  [style.bottom.%]="posY(p.real)"
+                  (mouseenter)="abrirPuntoLinea($event, p)"
+                  (mouseleave)="cerrarPuntoLinea()"
+                ></span>
+                <span
+                  class="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-[9px] leading-none font-semibold text-subtle"
+                  [style.left.%]="puntoX(i)"
+                  [style.bottom]="'calc(' + posYEtiquetaReal(p) + '% + 10px)'"
+                >
+                  {{ formato(p.real) }}
+                </span>
+              }
+              @if (verPredicha) {
+                <span
+                  class="punto-serie absolute h-2 w-2 -translate-x-1/2 translate-y-1/2 cursor-pointer rounded-full ring-2 ring-surface"
+                  [style.left.%]="puntoX(i)"
+                  [style.bottom.%]="posY(p.predicha)"
+                  [style.background]="colores[2]"
+                  (mouseenter)="abrirPuntoLinea($event, p)"
+                  (mouseleave)="cerrarPuntoLinea()"
+                ></span>
+                <span
+                  class="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-[9px] leading-none font-semibold"
+                  [style.left.%]="puntoX(i)"
+                  [style.bottom]="'calc(' + posY(p.predicha) + '% + 10px)'"
+                  [style.color]="colores[2]"
+                >
+                  {{ formato(p.predicha) }}
+                </span>
+              }
+            }
+          </div>
+        </div>
+        <div class="mt-1 flex gap-2">
+          <div class="min-w-11 shrink-0" aria-hidden="true"></div>
+          <div class="flex flex-1 justify-between text-[10px] leading-none text-subtle">
+            @for (etiqueta of etiquetasMes; track $index) {
+              <span>{{ etiqueta }}</span>
+            }
+          </div>
+        </div>
+      }
+    </section>
+    @if (resumen; as r) {
+      <section class="card px-3 py-2 shadow-sm" aria-label="Resumen del municipio seleccionado">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-col">
+            <span class="text-sm font-semibold">Resumen del municipio</span>
+            <span class="text-[10px] text-subtle">
+              Estado del mes en curso
+              @if (resumenMes; as mes) {
+                · {{ mes }}
+              }
+            </span>
+          </div>
+          <span
+            class="rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+            [style.background]="colorResumen(r.rank)"
+            [style.color]="legible(colorResumen(r.rank))"
+          >
+            {{ r.nivel }}
+          </span>
+        </div>
+        <div class="mt-2 flex flex-col gap-2">
+          <span class="truncate text-sm font-semibold">{{ r.municipio }}</span>
+          <span class="-mt-1.5 truncate text-[10px] text-subtle">{{ r.departamento ?? '' }}</span>
+          <div class="grid grid-cols-2 gap-1.5">
+            @for (stat of resumenStats; track stat.texto) {
+              <div class="rounded-md border border-border bg-surface-2/40 px-2 py-1.5">
+                <span class="block text-[9px] leading-tight text-subtle">{{ stat.texto }}</span>
+                <span class="block text-xs font-semibold">{{ stat.valor }}</span>
+              </div>
+            }
+          </div>
+          @if (r.meses.length > 0) {
+            <span class="text-[9px] text-subtle">Historial de nivel por mes</span>
+            <div class="flex flex-wrap gap-1" role="img" aria-label="Nivel de riesgo por mes">
+              @for (mes of r.meses; track mes.etiqueta) {
+                <span
+                  class="flex h-9 w-14 flex-col items-center justify-center rounded-md text-[9px] font-semibold leading-tight"
+                  [style.background]="colorResumen(mes.rank)"
+                  [style.color]="legible(colorResumen(mes.rank))"
+                  [title]="mes.etiqueta + ' · ' + mes.nivel"
+                >
+                  <span>{{ mes.etiqueta }}</span>
+                  <span>{{ mes.nivel }}</span>
+                </span>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    } @else {
+      <section class="card px-2.5 py-2 shadow-sm" aria-label="Nivel de riesgo predicho por territorio">
+        <div class="flex flex-col items-center">
+          <span class="text-sm leading-tight font-semibold">Riesgo predicho</span>
+          <span class="text-[10px] leading-tight text-subtle">Territorios por nivel (vista: {{ vista }})</span>
+        </div>
+        @if (tortaTotal === 0) {
+          <p class="mt-1.5 text-center text-xs text-subtle">Sin predicciones para graficar.</p>
+        } @else {
+          <div class="mt-1.5 flex justify-center">
+            <div class="relative h-64 w-64 shrink-0">
+              <svg
+                class="h-full w-full overflow-visible"
+                viewBox="0 0 100 100"
+                role="img"
+                aria-label="Distribución del nivel de riesgo predicho"
+              >
+              @for (sector of sectoresTorta; track sector.nivel.texto) {
+                <path
+                  class="sector-torta"
+                  fill-rule="evenodd"
+                  [attr.d]="sector.d"
+                  [attr.fill]="sector.nivel.color"
+                  [style.stroke]="'var(--border)'"
+                  [style.stroke-width.px]="1"
+                  [attr.transform]="hoverTorta()?.nivel === sector.nivel ? sectorEscala : null"
+                  (mouseenter)="hoverSector($event, sector)"
+                  (mouseleave)="cerrarTorta()"
+                />
+              }
+              @for (etiqueta of etiquetasTorta; track $index) {
+                <text
+                  class="pointer-events-none font-semibold"
+                  text-anchor="middle"
+                  dominant-baseline="central"
+                  [attr.x]="etiqueta.x"
+                  [attr.y]="etiqueta.y"
+                  [attr.font-size]="tortaFuente"
+                  [attr.fill]="legible(etiqueta.color)"
+                >
+                  {{ etiqueta.texto }}
+                </text>
+              }
+            </svg>
+            <div class="absolute inset-12 flex flex-col items-center justify-center rounded-full bg-surface">
+              <span class="text-xl leading-none font-semibold">{{ tortaTotal }}</span>
+              <span class="text-[10px] leading-none text-subtle">territorios</span>
+            </div>
+          </div>
+        </div>
+        }
+      </section>
+    }
+  </div>
+  @if (hoverTorta(); as t) {
+    <div
+      data-popup-torta
+      class="fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-surface p-3 text-xs shadow-md"
+      [style.left.px]="t.x"
+      [style.top.px]="t.y"
+      [style.border-top-color]="t.nivel.color"
+      [style.border-top-width.px]="3"
+      role="tooltip"
+      aria-label="Detalle del nivel de riesgo"
+    >
+      <strong class="font-semibold">Riesgo predicho</strong>
+      <div class="mt-2 flex items-center justify-between gap-4">
+        <span class="flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-full" [style.background]="t.nivel.color"></span>
+          {{ t.nivel.texto }}
+        </span>
+        <span class="font-semibold">{{ t.nivel.valor }} · {{ porcentaje(t.nivel.valor) }}</span>
+      </div>
+    </div>
+  }
+  @if (hoverLinea(); as item) {
+    <div
+      data-popup-linea
+      class="fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-surface p-3 text-xs shadow-md"
+      [style.left.px]="item.x"
+      [style.top.px]="item.y"
+      [style.border-top-color]="colores[1]"
+      [style.border-top-width.px]="3"
+      role="tooltip"
+      aria-label="Detalle del mes"
+    >
+      <strong class="font-semibold">{{ item.p.etiqueta }}</strong>
+      <div class="mt-2 space-y-1">
+        <div class="flex items-center justify-between gap-4">
+          <span class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full bg-subtle"></span>
+            Tasa real
+          </span>
+          <span class="font-semibold">{{ formato(item.p.real) }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <span class="flex items-center gap-1.5">
+            <span class="h-2.5 w-2.5 rounded-full" [style.background]="colores[2]"></span>
+            Tasa predicha
+          </span>
+          <span class="font-semibold">{{ formato(item.p.predicha) }}</span>
+        </div>
+      </div>
+    </div>
+  }
+  @if (punto() !== null && seleccionadaDatos(); as barra) {
+    <div
+      data-popup-barras
+      class="fixed z-50 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-surface p-3 pr-3 text-xs shadow-md"
+      [style.left.px]="punto()!.x"
+      [style.top.px]="punto()!.y"
+      [style.border-top-color]="colores[1]"
+      [style.border-top-width.px]="3"
+      role="dialog"
+      aria-label="Detalle de la barra"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <strong class="truncate font-semibold">{{ barra.etiqueta }}</strong>
+          @if (barra.departamento) {
+            <p class="text-[10px] text-subtle">{{ barra.departamento }}</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="text-subtle hover:text-foreground"
+          aria-label="Cerrar"
+          (click)="cerrar()"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      @if (modoDesglose() === 'mes' && barra.porMes && barra.porMes.length) {
+        <div class="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+          @for (fila of barra.porMes; track fila.etiqueta) {
+            <div class="flex items-center justify-between gap-4">
+              <span class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full" [style.background]="color(fila.rank)"></span>
+                {{ fila.etiqueta }}
+              </span>
+              <span
+                class="font-semibold"
+                [style.color]="color(fila.rank)"
+              >
+                {{ fila.nivel }}
+              </span>
+            </div>
+          }
+        </div>
+        <div class="mt-2 flex items-center justify-between gap-4 border-t border-border pt-2">
+          <span class="text-subtle">Meses con predicción</span>
+          <span class="font-semibold">{{ barra.porMes.length }}</span>
+        </div>
+      } @else if (barra.desglose) {
+        <div class="mt-2 space-y-1">
+          <div class="flex items-center justify-between gap-4">
+            <span class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-full" [style.background]="colores[0]"></span>
+              Bajo
+            </span>
+            <span class="font-semibold">{{ barra.desglose.bajo }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-4">
+            <span class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-full" [style.background]="colores[1]"></span>
+              Medio
+            </span>
+            <span class="font-semibold">{{ barra.desglose.medio }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-4">
+            <span class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-full" [style.background]="colores[2]"></span>
+              Alto
+            </span>
+            <span class="font-semibold">{{ barra.desglose.alto }}</span>
+          </div>
+        </div>
+      } @else {
+        <p class="mt-2">{{ leyenda(barra.rank) }}</p>
+      }
+    </div>
+  }
+</div>

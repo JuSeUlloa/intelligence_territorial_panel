@@ -1,0 +1,46 @@
+<footer class="card overflow-hidden shadow-sm" aria-label="Resumen del trabajo realizado">
+  <div class="flex items-center gap-3 px-4 pt-3">
+    <span
+      class="h-3 w-3 shrink-0 rounded-full"
+      [style.background]="acento().fondo"
+      aria-hidden="true"
+    ></span>
+    <div class="flex flex-col">
+      <span class="text-sm leading-tight font-semibold">Trabajo realizado</span>
+      <span class="text-[10px] text-subtle">Recorrido por los módulos del panel territorial</span>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
+    @for (tarjeta of resumen; track tarjeta.titulo) {
+      <div class="rounded-lg border border-border bg-surface-2/40 p-3">
+        <div class="flex items-start gap-2">
+          <span
+            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+            [style.background]="acento().fondo"
+            [style.color]="acento().texto"
+          >
+            <i class="{{ tarjeta.icono }}" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <span class="text-xs font-semibold">{{ tarjeta.titulo }}</span>
+            <p class="mt-0.5 text-[10px] leading-snug text-subtle">{{ tarjeta.texto }}</p>
+          </div>
+        </div>
+        <ul class="mt-2 space-y-1 text-[11px] leading-snug">
+          @for (item of tarjeta.items; track item) {
+            <li class="flex items-start gap-1.5">
+              <i class="fa-solid fa-check text-[9px] leading-4" aria-hidden="true"></i>
+              <span>{{ item }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+  <div
+    class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-[10px] text-subtle"
+  >
+    <span>Intelligence Territorial Panel · Angular 22 · Tailwind 4 · Mapbox GL</span>
+    <span>Datos: /gold · /prediction — trabajo final</span>
+  </div>
+</footer>
