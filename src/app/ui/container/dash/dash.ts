@@ -614,6 +614,7 @@ export class Dash {
     try {
       const mapboxgl = ((await import("mapbox-gl")) as { default: unknown }).default as unknown as {
         accessToken: string;
+        workerUrl: string;
         Map: new (options: Record<string, unknown>) => MapboxMap;
         NavigationControl: new (options?: Record<string, unknown>) => {
           onAdd(): HTMLElement;
@@ -623,6 +624,9 @@ export class Dash {
       };
       this.mapbox = mapboxgl as unknown as typeof import("mapbox-gl");
       mapboxgl.accessToken = environment.mapboxAccessToken;
+      // El worker debe venir de un archivo estático: el blob interno se rompe con el
+      // minificado del build de producción (ReferenceError dentro de loadTile/parse).
+      mapboxgl.workerUrl = new URL("mapbox-gl-csp-worker.js", document.baseURI).href;
       const map2 = new mapboxgl.Map({
         container,
         style: this.theme.isDark() ? STYLE_DARK : STYLE_LIGHT,
@@ -635,6 +639,10 @@ export class Dash {
                         projection: "mercator"
       });
       this.map = map2;
+      // Gancho de diagnóstico (solo con ?mapdiag=1 en la URL)
+      if (typeof window !== "undefined" && window.location.search.includes("mapdiag=1")) {
+        (window as unknown as Record<string, unknown>)["__itpMap"] = map2;
+      }
       map2.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
       map2.on("error", (event) => {
         const message = String(event.error?.message ?? "");
