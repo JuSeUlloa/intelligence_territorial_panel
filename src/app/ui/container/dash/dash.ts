@@ -83,6 +83,9 @@ export class Dash {
   nivel = signal<GeoSelection["nivel"]>("departamento");
   verPrediccion = signal(false);
   meses = signal<number[]>([]);
+  anioFuente = signal<number | null>(null);
+  fuenteDatos = signal('Riesgo');
+  subtituloDatos = signal('');
   kpis = signal<KpiPanel>({
     municipios: 0,
     hurtos: 0,
@@ -126,7 +129,7 @@ export class Dash {
     municipio: null
   };
   hoverRegistered = false;
-  predsPool: Map<string, Prediccion> | null = null;
+  rendicion = 0;  predsPool: Map<string, Prediccion> | null = null;
   barrasPorMes: Map<string, Array<{ etiqueta: string; nivel: string; rank: number | null }>> | null = null;
   currentMes: number | null = null;
   currentRiesgo: PanelFilters['riesgo'] = "todo";
@@ -139,7 +142,7 @@ export class Dash {
       }
       this.hoverPopup?.remove();
       map2.setStyle(dark ? STYLE_DARK : STYLE_LIGHT);
-      map2.once("styledata", () => this.retryAddLayers(map2));
+      map2.on("styledata", () => this.retryAddLayers(map2));
     });
     effect(() => {
       const color = this.fillColor();
@@ -164,7 +167,7 @@ export class Dash {
     if (saliendoPrediccion) {
       this.verPrediccion.set(false);
     }
-    if ((cambio || saliendoPrediccion) && this.currentSelection.nivel !== "barrio") {
+    if (cambio || saliendoPrediccion) {
       this.renderSelection(this.currentSelection);
     }
   }
@@ -186,9 +189,7 @@ export class Dash {
   }
     onTogglePrediccion() {
     this.verPrediccion.set(!this.verPrediccion());
-    if (this.currentSelection.nivel !== "barrio") {
-      this.renderSelection(this.currentSelection);
-    }
+    this.renderSelection(this.currentSelection);
   }
     onGeoSelection(selection) {
     this.renderSelection(selection);
@@ -215,37 +216,112 @@ export class Dash {
     }
     return this.territory.getPrediccionMunicipioActual();
   }
+  datasetPrevio = '';
+
   renderSelection(selection: GeoSelection): void {
+    const sesion = ++this.rendicion;
+    const claveDataset = selection.nivel + '|' + String(this.verPrediccion());
+    if (this.datasetPrevio !== claveDataset) {
+      this.currentMes = null;
+      this.datasetPrevio = claveDataset;
+    }
     this.currentSelection = selection;
     this.nivel.set(selection.nivel);
     this.dataError.set(false);
     this.loading.set(true);
     const data$ = combineLatest([
       this.collectionFor(selection),
-      selection.nivel === "barrio" ? (
-                        this.prediccionesParaBarrio().pipe(catchError(() => of(EMPTY_COLLECTION)))
-      ) : this.prediccionesParaVista(),
-                        this.territory.getPredicciones(null)
+      selection.nivel === "barrio"
+        ? (this.verPrediccion()
+            ? this.prediccionesParaBarrio().pipe(catchError(() => of(EMPTY_COLLECTION)))
+            : this.territory.getPrediccionMunicipio().pipe(catchError(() => of(EMPTY_COLLECTION))))
+      : this.prediccionesParaVista(),
+                        this.territory.getPredicciones(null),
+      selection.nivel === "barrio"
+        ? this.territory.getPrediccionMunicipio().pipe(catchError(() => of(EMPTY_COLLECTION)))
+        : of(EMPTY_COLLECTION)
     ]).pipe(
       map(
         (
-          [collection, predicciones, goldCompleto]: [
+          [collection, predicciones, goldCompleto, barriosTodas]: [
+            FeatureCollection,
             FeatureCollection,
             FeatureCollection,
             FeatureCollection,
           ],
         ) => {
+        const barrioSinPrediccion = selection.nivel === "barrio" && !this.verPrediccion();
+        let datosPredicciones = predicciones;
+        let oroBarrio: FeatureCollection | null = null;
+        if (barrioSinPrediccion) {
+          const fechaActual = (function maxFecha(col: FeatureCollection): number {
+            let max = -1;
+            col.features.forEach((feature) => {
+              const pred = Prediccion.from(feature.properties ?? {});
+              if (pred) {
+                max = Math.max(max, pred.anio * 100 + pred.mes);
+              }
+            });
+            return max;
+          })(barriosTodas);
+          oroBarrio = {
+            type: "FeatureCollection",
+            features: barriosTodas.features.filter((feature) => {
+              const pred = Prediccion.from(feature.properties ?? {});
+              return pred && pred.anio * 100 + pred.mes !== fechaActual;
+            }),
+          };
+          datosPredicciones =
+            this.currentMes === null
+              ? oroBarrio
+              : {
+                  type: "FeatureCollection",
+                  features: oroBarrio.features.filter(
+                    (feature) =>
+                      Prediccion.from(feature.properties ?? {})?.mes === this.currentMes,
+                  ),
+                };
+        }
+        const fuenteMeses = barrioSinPrediccion
+          ? oroBarrio!
+          : this.verPrediccion()
+            ? predicciones
+            : goldCompleto;
+        const mesesFuente = selection.nivel === "barrio" && !this.verPrediccion()
+          ? mesesUnicos(fuenteMeses)
+          : mesesDisponibles(fuenteMeses);
+        this.meses.set(mesesFuente);
+        this.anioFuente.set(anioBase(fuenteMeses));
+        this.fuenteDatos.set(
+          selection.nivel === "barrio"
+            ? (this.verPrediccion() ? "Riesgo próx. mes" : "Riesgo por barrio")
+            : (this.verPrediccion() ? "Riesgo próximo mes" : "Riesgo"),
+        );
+        const mesReviso = mesesFuente.length
+          ? String(mesesFuente[mesesFuente.length - 1]).padStart(2, "0")
+          : null;
+        this.subtituloDatos.set(
+          this.verPrediccion()
+            ? "predicción " + (mesReviso ? NOMBRES_MES[Number(mesReviso) - 1] ?? mesReviso : "")
+            : mesesFuente.length
+              ? (mesesFuente.length > 1
+                  ? NOMBRES_MES[mesesFuente[0] - 1] + "–" + NOMBRES_MES[mesesFuente[mesesFuente.length - 1] - 1]
+                  : (NOMBRES_MES[mesesFuente[0] - 1] ?? ""))
+              : "sin meses",
+        );
         if (this.currentMes === null && this.meses().length === 0) {
           this.meses.set(mesesDisponibles(goldCompleto));
         }
-        const preds = selection.nivel === "barrio" ? latestPrediccionesBarrio(predicciones) : latestPredicciones(predicciones);
+        const preds = selection.nivel === "barrio"
+          ? latestPrediccionesBarrio(datosPredicciones, this.currentMes)
+          : latestPredicciones(predicciones);
         this.predsPool = preds;
         const nombresBarrio = /* @__PURE__ */ new Map();
         const esBarrio = selection.nivel === "barrio";
         if (esBarrio || selection.nivel === "municipio") {
           const claveDe = (props) => esBarrio ? String(props["id_barrio"] ?? "").trim() : String(props["codigo_dane"] ?? "").padStart(5, "0");
           const filasPorClave = /* @__PURE__ */ new Map();
-          predicciones.features.forEach((feature) => {
+          datosPredicciones.features.forEach((feature) => {
             const props = feature.properties ?? {};
             const pred = Prediccion.from(props);
             const rank = pred ? Prediccion.riesgoEscala(pred.nivel_riesgo_predicho) : null;
@@ -291,7 +367,30 @@ export class Dash {
             (feature) => daneKey(feature.properties?.["codigo_dane"])
           )
         ) : null;
-        this.serieMensual.set(serieMensualTasas(goldCompleto, depsVisibles, munisVisibles));
+        this.serieMensual.set(
+          selection.nivel === "barrio"
+            ? serieMensualBarrioTasas(
+                oroBarrio ?? datosPredicciones,
+                new Set(
+                  collection.features.map(
+                    (feature) => String(feature.properties?.["id_barrio"] ?? "").trim(),
+                  ),
+                ),
+              )
+            : (() => {
+                let serie = serieMensualTasas(goldCompleto, depsVisibles, munisVisibles);
+                if (this.verPrediccion()) {
+                  const extra = serieMensualTasas(predicciones, depsVisibles, munisVisibles);
+                  const mesExtra = extra[extra.length - 1];
+                  if (mesExtra) {
+                    serie = [...serie, mesExtra];
+                  }
+                } else if (this.currentMes !== null) {
+                  serie = serie.filter((p) => p.mes <= this.currentMes);
+                }
+                return serie;
+              })(),
+        );
         this.conteoRiesgo.set(
           conteoRiesgoPredicho(
             preds,
@@ -352,7 +451,7 @@ export class Dash {
         }
         this.alertasCambio.set(
           alertasTransicion(
-            selection.nivel === "barrio" ? predicciones : goldCompleto,
+            selection.nivel === "barrio" ? datosPredicciones : goldCompleto,
             depsVisibles,
             munisVisibles,
             selection.nivel === "barrio"
@@ -361,7 +460,7 @@ export class Dash {
         this.puntosAtencion.set(
           puntosAtencion(
             preds,
-            selection.nivel === "barrio" ? predicciones : goldCompleto,
+            selection.nivel === "barrio" ? datosPredicciones : goldCompleto,
             depsVisibles,
             munisVisibles,
             selection.nivel === "barrio"
@@ -370,10 +469,11 @@ export class Dash {
         this.kpis.set(
           kpiPredicciones(
             collection,
-            predicciones,
+            datosPredicciones,
             selection.nivel,
             this.currentRiesgo,
-            this.verPrediccion()
+            this.verPrediccion(),
+            barrioSinPrediccion && this.currentMes === null
           )
         );
         return adaptCollection(
@@ -386,6 +486,9 @@ export class Dash {
     );
     data$.subscribe({
       next: (data) => {
+        if (sesion !== this.rendicion) {
+          return;
+        }
         this.loading.set(false);
         this.activeCollection = data;
         if (selection.nivel === "departamento") {
@@ -835,6 +938,26 @@ export function latestPrediccionesBarrio(collection: FeatureCollection, mes: num
   });
   return byId;
 }
+export function mesesUnicos(collection: FeatureCollection): number[] {
+  const meses = new Set<number>();
+  collection.features.forEach((feature) => {
+    const pred = Prediccion.from(feature.properties ?? {});
+    if (pred && pred.mes >= 1 && pred.mes <= 12) {
+      meses.add(pred.mes);
+    }
+  });
+  return [...meses].sort((a, b) => a - b);
+}
+export function anioBase(collection: FeatureCollection): number | null {
+  let min = Infinity;
+  collection.features.forEach((feature) => {
+    const pred = Prediccion.from(feature.properties ?? {});
+    if (pred && pred.anio > 0 && pred.anio < min) {
+      min = pred.anio;
+    }
+  });
+  return Number.isFinite(min) ? min : null;
+}
 export function mesesDisponibles(collection: FeatureCollection): number[] {
   let maxAnio = -1;
   collection.features.forEach((feature) => {
@@ -917,8 +1040,50 @@ export function serieMensualTasas(
     predicha: promedioDePromedios(e.predPorMuni) ?? 0
   }));
 }
-function acumulaPorMuni(
-  mapa: Map<string, { suma: number; cuenta: number }>,
+export function serieMensualBarrioTasas(
+  predicciones: FeatureCollection,
+  idsVisibles: Set<string> | null = null,
+): LineaMes[] {
+  const porMes = new Map<
+    string,
+    {
+      mes: number;
+      anio: number;
+      predPorBarrio: Map<string, { suma: number; cuenta: number }>;
+      realPorBarrio: Map<string, { suma: number; cuenta: number }>;
+    }
+  >();
+  predicciones.features.forEach((feature) => {
+    const pred = Prediccion.from(feature.properties ?? {});
+    if (!pred || pred.mes < 1 || pred.mes > 12) {
+      return;
+    }
+    const key = String(feature.properties?.['id_barrio'] ?? '').trim();
+    if (!key || (idsVisibles && !idsVisibles.has(key))) {
+      return;
+    }
+    const mesKey = `${pred.anio}-${String(pred.mes).padStart(2, "0")}`;
+    const entry = porMes.get(mesKey) ?? {
+      mes: pred.mes,
+      anio: pred.anio,
+      predPorBarrio: new Map<string, { suma: number; cuenta: number }>(),
+      realPorBarrio: new Map<string, { suma: number; cuenta: number }>(),
+    };
+    if (pred.tasa_real !== null && pred.tasa_real > 0) {
+      acumulaPorMuni(entry.realPorBarrio, key, pred.tasa_real);
+    }
+    acumulaPorMuni(entry.predPorBarrio, key, pred.tasa_predicha);
+    porMes.set(mesKey, entry);
+  });
+  return [...porMes.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, e]) => ({
+    etiqueta: etiquetaMes(e.mes, e.anio),
+    mes: e.mes,
+    anio: e.anio,
+    real: promedioDePromedios(e.realPorBarrio),
+    predicha: promedioDePromedios(e.predPorBarrio) ?? 0,
+  }));
+}
+function acumulaPorMuni(  mapa: Map<string, { suma: number; cuenta: number }>,
   muniKey: string,
   valor: number,
 ): void {
@@ -1277,8 +1442,8 @@ function aggregateRiskByDepartment(
       entry.rankCount += 1;
     }
     entry.tasaPredicha += pred.tasa_predicha;
-    entry.tasaReal += pred.tasa_real;
-    entry.totalSuma += pred.total_tematica;
+    entry.tasaReal += pred.tasa_real ?? 0;
+    entry.totalSuma += pred.total_tematica ?? 0;
     entry.count += 1;
     sums.set(dept, entry);
   });
@@ -1330,6 +1495,7 @@ export function kpiPredicciones(
   nivel: GeoSelection['nivel'],
   riesgo: PanelFilters['riesgo'] = 'todo',
   esProximoMes = false,
+  acumularOro = false,
 ): KpiPanel {
   const depsVisibles = new Set<string>(
     nivel === 'departamento'
@@ -1339,6 +1505,67 @@ export function kpiPredicciones(
   const munisVisibles = new Set<string>(
     collection.features.map((feature) => daneKey(feature.properties?.['codigo_dane'])),
   );
+  if (nivel === 'barrio') {
+    const idBarrios = new Set<string>(
+      collection.features.map(
+        (feature) => String((feature.properties ?? {})['id_barrio'] ?? '').trim(),
+      ),
+    );
+    const porBarrio = new Map<string, Prediccion[]>();
+    predicciones.features.forEach((feature) => {
+      const props = feature.properties ?? {};
+      const pred = Prediccion.from(props);
+      const id = String(props['id_barrio'] ?? '').trim();
+      if (!pred || !id || !idBarrios.has(id)) {
+        return;
+      }
+      const lista = porBarrio.get(id) ?? [];
+      lista.push(pred);
+      porBarrio.set(id, lista);
+    });
+    porBarrio.forEach((lista) => {
+      lista.sort((a, b) => a.anio * 12 + a.mes - (b.anio * 12 + b.mes));
+    });
+    const elegidos = new Set<string>();
+    porBarrio.forEach((lista, id) => {
+      const ultimaFila = lista[lista.length - 1];
+      if (riesgo === 'todo' || ultimaFila.nivel_riesgo_predicho.toUpperCase() === riesgo) {
+        elegidos.add(id);
+      }
+    });
+    let hurtos = 0;
+    let tasaSuma = 0;
+    let errorSuma = 0;
+    let conReal = 0;
+    let filasContadas = 0;
+    let riesgosAltos = 0;
+    elegidos.forEach((id) => {
+      const lista = porBarrio.get(id)!;
+      const filas = acumularOro ? lista : lista.slice(-1);
+      filas.forEach((pred) => {
+        hurtos += pred.total_tematica ?? pred.conteo_predicho;
+        tasaSuma +=
+          pred.tasa_real !== null && pred.tasa_real > 0 ? pred.tasa_real : pred.tasa_predicha;
+        if (pred.tasa_real !== null && pred.tasa_real > 0) {
+          conReal += 1;
+          errorSuma += pred.abs_error;
+        }
+      });
+      filasContadas += filas.length;
+      if (lista[lista.length - 1].nivel_riesgo_predicho.toUpperCase() === 'ALTO') {
+        riesgosAltos += 1;
+      }
+    });
+    return {
+      municipios: elegidos.size,
+      hurtos,
+      hurtosEstimados: conReal === 0,
+      tasaMedia: filasContadas ? tasaSuma / filasContadas : 0,
+      mae: conReal > 0 ? errorSuma / conReal : 0,
+      sinMae: esProximoMes || conReal === 0,
+      riesgosAltos,
+    };
+  }
   const filas = predicciones.features.map((feature) => Prediccion.from(feature.properties ?? {})).filter((pred) => pred !== null).filter((pred) => {
     const key = String(pred.codigo_dane).padStart(5, "0");
     return nivel === "departamento" ? depsVisibles.has(key.slice(0, 2)) : munisVisibles.has(key);
@@ -1361,16 +1588,23 @@ export function kpiPredicciones(
     (pred) => elegidos.has(String(pred.codigo_dane).padStart(5, "0"))
   );
   let hurtos = 0;
+  let faltantes = 0;
   let tasaSuma = 0;
   let errorSuma = 0;
   filasElegidas.forEach((pred) => {
-    hurtos += pred.total_tematica;
+    if (pred.total_tematica === null) {
+      faltantes += 1;
+      hurtos += (pred.tasa_predicha * pred.pob_dane_2025) / 100000;
+    } else {
+      hurtos += pred.total_tematica;
+    }
     tasaSuma += pred.tasa_real > 0 ? pred.tasa_real : pred.tasa_predicha;
     errorSuma += pred.abs_error;
   });
   return {
     municipios: elegidos.size,
     hurtos,
+    hurtosEstimados: faltantes > 0,
     tasaMedia: filasElegidas.length ? tasaSuma / filasElegidas.length : 0,
     mae: filasElegidas.length ? errorSuma / filasElegidas.length : 0,
     sinMae: esProximoMes,

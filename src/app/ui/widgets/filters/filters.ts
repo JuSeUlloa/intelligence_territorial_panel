@@ -2,8 +2,10 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   OnInit,
   Output,
+  SimpleChanges,
   inject,
   signal,
 } from '@angular/core';
@@ -65,6 +67,9 @@ export class Filters implements OnInit {
 
   @Input() meses: number[] = [];
   @Input() verPrediccion = false;
+  @Input() anio: number | null = null;
+  @Input() fuente = 'Riesgo';
+  @Input() subtituloFuente = '';
 
   protected readonly mes = signal<number | null>(null);
   protected readonly riesgo = signal<'todo' | 'BAJO' | 'MEDIO' | 'ALTO'>('todo');
@@ -84,6 +89,12 @@ export class Filters implements OnInit {
   protected readonly consulta = signal('');
   protected readonly typeaheadAbierto = signal(false);
   protected readonly municipioElegido = signal<string | null>(null);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['meses'] && this.mes() !== null && !this.meses.includes(this.mes())) {
+      this.mes.set(null);
+    }
+  }
 
   ngOnInit(): void {
     forkJoin({

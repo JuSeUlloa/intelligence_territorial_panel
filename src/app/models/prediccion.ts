@@ -1,14 +1,15 @@
 export class Prediccion {
   id_barrio = '';
   barrio = '';
+  conteo_predicho = 0;
   municipio: string;
   codigo_dane: number;
   departamento: string;
   mes: number;
   anio: number;
   tasa_predicha: number;
-  tasa_real: number;
-  total_tematica: number;
+  tasa_real: number | null;
+  total_tematica: number | null;
   tematica_mes_anterior: number;
   pob_dane_2025: number;
   error: number;
@@ -28,8 +29,8 @@ export class Prediccion {
     mes: number,
     ani: number,
     tasap: number,
-    tasar: number,
-    total: number,
+    tasar: number | null,
+    total: number | null,
     temat: number,
     pob: number,
     err: number,
@@ -77,6 +78,13 @@ export class Prediccion {
       const value = Number(v);
       return Number.isFinite(value) ? value : 0;
     };
+    const numONulo = (v: unknown): number | null => {
+      if (v === null || v === undefined || v === '') {
+        return null;
+      }
+      const value = Number(v);
+      return Number.isFinite(value) ? value : 0;
+    };
     if (r['id_barrio'] !== undefined && r['id_barrio'] !== null) {
       const modelo = new Prediccion(
         s(r['municipio']),
@@ -85,8 +93,8 @@ export class Prediccion {
         n(r['mes']),
         n(r['anio']),
         n(r['tasa_predicha']),
-        n(r['tasa_real']),
-        n(r['total_tematica']),
+        numONulo(r['tasa_real']),
+        numONulo(r['total_tematica']),
         n(r['tematica_mes_anterior']),
         n(r['pob_dane_2025']),
         n(r['error']),
@@ -101,6 +109,7 @@ export class Prediccion {
       );
       modelo.id_barrio = String(r['id_barrio']).trim();
       modelo.barrio = String(r['barrio'] ?? '').trim();
+      modelo.conteo_predicho = n(r['conteo_predicho']);
       return modelo;
     }
     return new Prediccion(
@@ -110,8 +119,8 @@ export class Prediccion {
       n(r['mes']),
       n(r['anio']),
       n(r['tasa_predicha']),
-      n(r['tasa_real']),
-      n(r['total_tematica']),
+      numONulo(r['tasa_real']),
+      numONulo(r['total_tematica']),
       n(r['tematica_mes_anterior']),
       n(r['pob_dane_2025']),
       n(r['error']),

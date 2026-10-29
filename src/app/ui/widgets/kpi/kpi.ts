@@ -3,6 +3,7 @@ import { Component, Input } from '@angular/core';
 export interface KpiPanel {
   municipios: number;
   hurtos: number;
+  hurtosEstimados?: boolean;
   tasaMedia: number;
   mae: number;
   sinMae: boolean;
@@ -44,7 +45,7 @@ export class Kpi {
       {
         id: 'hurtos',
         icono: 'fa-solid fa-cart-shopping',
-        etiqueta: 'Hurtos',
+        etiqueta: this.kpis.hurtosEstimados ? 'Hurtos estimados' : 'Hurtos',
         valor: entero(hurtos),
         mutado: false,
       },
