@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist/intelligence_territorial_panel/browser",
+  "functions": {
+    "api/dbx.mjs": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
       "source": "/api/dbx/:ruta*",
@@ -9,3 +14,4 @@
     }
   ]
 }
+

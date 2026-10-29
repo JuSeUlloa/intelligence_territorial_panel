@@ -33,9 +33,13 @@ export async function runQuery(statement) {
   });
   const j = await r.json();
   if (!r.ok || j.status?.state !== "SUCCEEDED") {
-    throw new Error(
-      j.error?.message || j.status?.error?.message || `SQL ${j.status?.state || r.status}`
-    );
+    const detalle =
+      j.message ||
+      (typeof j.error === "string" ? j.error : null) ||
+      j.error?.message ||
+      j.status?.error?.message ||
+      "sin detalle del backend";
+    throw new Error(`SQL ${r.status || j.status?.state}: ${detalle}`);
   }
   const cols = j.manifest.schema.columns.map((c) => c.name);
   return (j.result?.data_array || []).map(
