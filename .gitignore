@@ -50,6 +50,7 @@ Thumbs.db
 /api/node_modules
 /api/local-server.mjs
 
+
 # Vercel (config de link de `vercel link`/`vercel dev` y caché)
 .vercel/
 .vercel
