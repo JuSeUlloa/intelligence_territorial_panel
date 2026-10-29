@@ -80,6 +80,7 @@ export class Dash {
   loading = signal(true);
   mapError = signal<string | null>(null);
   dataError = signal(false);
+  mensajeDatos = signal<string | null>(null);
   nivel = signal<GeoSelection["nivel"]>("departamento");
   verPrediccion = signal(false);
   meses = signal<number[]>([]);
@@ -129,7 +130,8 @@ export class Dash {
     municipio: null
   };
   hoverRegistered = false;
-  rendicion = 0;  predsPool: Map<string, Prediccion> | null = null;
+  reintentoRegistrado = false;
+  rendicion = 0; predsPool: Map<string, Prediccion> | null = null;
   barrasPorMes: Map<string, Array<{ etiqueta: string; nivel: string; rank: number | null }>> | null = null;
   currentMes: number | null = null;
   currentRiesgo: PanelFilters['riesgo'] = "todo";
@@ -142,8 +144,15 @@ export class Dash {
       }
       this.hoverPopup?.remove();
       map2.setStyle(dark ? STYLE_DARK : STYLE_LIGHT);
-      map2.setProjection("mercator");
-      map2.on("styledata", () => this.retryAddLayers(map2));
+      // Tras setStyle la proyección vuelve a la del estilo (globe en v3). Re-aplicarla
+      // solo cuando el NUEVO estilo termine de cargarse evita la "esfera".
+      map2.once("style.load", () => {
+        map2.setProjection("mercator");
+      });
+      if (!this.reintentoRegistrado) {
+        this.reintentoRegistrado = true;
+        map2.on("styledata", () => this.retryAddLayers(map2));
+      }
     });
     effect(() => {
       const color = this.fillColor();
@@ -229,6 +238,7 @@ export class Dash {
     this.currentSelection = selection;
     this.nivel.set(selection.nivel);
     this.dataError.set(false);
+    this.mensajeDatos.set(null);
     this.loading.set(true);
     const data$ = combineLatest([
       this.collectionFor(selection),
@@ -561,8 +571,9 @@ export class Dash {
         }
         this.fitToCollection(data, selection.nivel);
       },
-      error: () => {
+      error: (fallo) => {
         this.loading.set(false);
+        this.mensajeDatos.set(mensajeDatos(fallo));
         this.dataError.set(true);
       }
     });
@@ -620,10 +631,10 @@ export class Dash {
         minZoom: 3,
         maxZoom: 13,
                         maxBounds: COLOMBIA_MAX_BOUNDS,
-                        attributionControl: false
+                        attributionControl: false,
+                        projection: "mercator"
       });
       this.map = map2;
-      map2.setProjection("mercator");
       map2.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
       map2.on("error", (event) => {
         const message = String(event.error?.message ?? "");
@@ -902,6 +913,21 @@ export function computeBounds(collection: FeatureCollection): [number, number, n
     }
   });
   return found ? [west, south, east, north] : null;
+}
+/** Mensaje humano para el aviso de datos: usa la razón clasificada por el BFF si llegó. */
+export function mensajeDatos(fallo: unknown): string {
+  const cuerpo =
+    fallo && typeof fallo === "object"
+      ? ((fallo as Record<string, unknown>)["error"] as Record<string, unknown> | undefined)
+      : undefined;
+  const msg = typeof cuerpo?.["error"] === "string" ? cuerpo["error"].trim() : "";
+  if (msg) {
+    return msg;
+  }
+  if (typeof cuerpo?.["detalle"] === "string" && cuerpo["detalle"].length > 0) {
+    return `No se pudieron cargar los polígonos: ${cuerpo["detalle"]}`;
+  }
+  return "No se pudieron cargar los polígonos desde la API.";
 }
 export function daneKey(value: unknown): string {
   const num = Number(value);

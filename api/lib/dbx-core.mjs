@@ -17,6 +17,74 @@ async function getM2mToken() {
   tokenCache = { token: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1e3 };
   return j.access_token;
 }
+
+/* ---------- Caché en memoria de instancia (útil en invocaciones tibias de Vercel) ---------- */
+const cacheMemoria = new Map();
+const TTL_CACHE = 1e3 * Number(process.env.DBX_CACHE_TTL_S ?? 300);
+
+function leerCache(ruta) {
+  if (TTL_CACHE <= 0) return null;
+  const hit = cacheMemoria.get(ruta);
+  return hit && Date.now() < hit.exp ? hit.valor : null;
+}
+
+function guardarCache(ruta, valor) {
+  if (TTL_CACHE > 0) {
+    cacheMemoria.set(ruta, { valor, exp: Date.now() + TTL_CACHE });
+  }
+  return valor;
+}
+
+async function resolver(ruta) {
+  const hit = leerCache(ruta);
+  if (hit) return hit;
+  return guardarCache(ruta, await runQueryForRoute(ruta));
+}
+
+/* ---------- Diagnóstico del warehouse ---------- */
+const ES_CUOTA = /free daily limit|COMMUNITY_EDITION_CREDIT_EXHAUSTED/i;
+const ES_WAREHOUSE = /could not be processed by the warehouse/i;
+
+const RAZONES = {
+  cuota_diaria:
+    "Databricks agotó la cuota diaria gratuita de cómputo (Community Edition). Los datos estarán disponibles mañana o al recargar créditos.",
+  warehouse_arrancando:
+    "El warehouse SQL estaba suspendido y está arrancando. Reintenta en unos segundos.",
+  warehouse_no_responde:
+    "El warehouse de Databricks no respondió. Revisa su estado en la consola del workspace.",
+  ruta_invalida: ""
+};
+
+const ES_RUTA = /ruta no soportada|no configurada|inválid/i;
+
+async function diagnosticarWarehouse() {
+  try {
+    const token = await getM2mToken();
+    const info = await fetch(`https://${process.env.DATABRICKS_HOST}/api/2.0/sql/warehouses/${process.env.DATABRICKS_WAREHOUSE_ID}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!info.ok) return "warehouse_no_responde";
+    const estado = (await info.json()).state;
+    if (estado === "RUNNING") return "warehouse_no_responde";
+    // Está apagado: intentar reactivar para no dejarlo "SIEMPRE apagado" (precalienta la siguiente llamada).
+    const arranque = await fetch(`https://${process.env.DATABRICKS_HOST}/api/2.0/sql/warehouses/${process.env.DATABRICKS_WAREHOUSE_ID}/start`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!arranque.ok && ES_CUOTA.test(await arranque.text())) return "cuota_diaria";
+    return "warehouse_arrancando";
+  } catch {
+    return "warehouse_no_responde";
+  }
+}
+
+async function clasificarFallo(texto) {
+  if (ES_CUOTA.test(texto)) return "cuota_diaria";
+  if (ES_RUTA.test(texto)) return "ruta_invalida";
+  if (ES_WAREHOUSE.test(texto)) return await diagnosticarWarehouse();
+  return "warehouse_no_responde";
+}
+
 export async function runQuery(statement) {
   const token = await getM2mToken();
   const r = await fetch(`https://${process.env.DATABRICKS_HOST}/api/2.0/sql/statements`, {
@@ -139,16 +207,13 @@ export default async function handler(req, res) {
       } catch {}
     }
     try {
-      const data = await runQueryForRoute(rutaWeb);
+      const data = await resolver(rutaWeb);
       return new Response(JSON.stringify({ status: "Ok", response: data }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json" }
       });
     } catch (e) {
-      return new Response(JSON.stringify({ status: "degraded", error: String(e.message || e) }), {
-        status: 503,
-        headers: { "content-type": "application/json" },
-      });
+      return responderDegradado(String(e.message || e), (body) => new Response(JSON.stringify(body), { status: 503, headers: { "content-type": "application/json", "cache-control": "no-store" } }));
     }
   }
   const queryRuta = req.query?.ruta;
@@ -161,11 +226,23 @@ export default async function handler(req, res) {
     }
   }
   try {
-    const data = await runQueryForRoute(path);
+    const data = await resolver(path);
     res.status(200).json({ status: "Ok", response: data });
   } catch (e) {
-    res.status(503).json({ status: "degraded", error: String(e.message || e) });
+    responderDegradado(String(e.message || e), (body) => res.status(503).json(body));
   }
+}
+
+/** Devuelve 503 con la razón clasificada (cuota/warehouse) y su mensaje humano. */
+function responderDegradado(detalle, enviar) {
+  void clasificarFallo(detalle).then((razon) => {
+    enviar({
+      status: "degraded",
+      razon,
+      error: RAZONES[razon] || detalle || "No se pudo consultar Databricks.",
+      detalle
+    });
+  });
 }
 async function runQueryForRoute(path) {
   const [seg0, seg1, seg2] = path.split(/\/+/).filter(Boolean);

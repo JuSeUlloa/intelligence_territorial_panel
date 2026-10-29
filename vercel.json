@@ -4,7 +4,7 @@
   "outputDirectory": "dist/intelligence_territorial_panel/browser",
   "functions": {
     "api/dbx.mjs": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   },
   "rewrites": [
