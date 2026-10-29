@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-for (const line of fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8").split("\n")) {
+for (const line of fs.readFileSync(path.join(__dirname, "..", "api", ".env"), "utf8").split("\n")) {
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m) {
     const valor = m[2].trim().replace(/^['"]/, "").replace(/['"]$/, "");
@@ -13,7 +13,7 @@ for (const line of fs.readFileSync(path.join(__dirname, "..", ".env"), "utf8").s
 process.env.DBX_CATALOG ??= "workspace";
 process.env.DBX_SCHEMA ??= "territorial_inteligence";
 process.env.DATABRICKS_HOST ??= "dbc-01398c98-b88e.cloud.databricks.com";
-const handler = (await import("./dbx-core.mjs")).default;
+const handler = (await import("../api/lib/dbx-core.mjs")).default;
 const PORT = Number(process.env.DEV_API_PORT || 4201);
 http.createServer(async (req, res) => {
   const resLike = {

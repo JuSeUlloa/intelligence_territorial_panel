@@ -20,7 +20,7 @@ Construido con **Angular 22 · Tailwind CSS 4 · Mapbox GL** y un **BFF ligero
                      │  OAuth M2M  (solo servidor)
                      ▼
 ┌──────────────────────── BFF — /api/dbx  (api/lib/dbx-core.mjs) ───────────────────┐
-│  · Vercel Function (prod, api/dbx.mjs) o local-server (dev, puerto 4201)          │
+│  · Vercel Function (prod) o scripts/local-server.mjs (dev, puerto 4201)           │
 │  · rutas de lista blanca → SQL sin interpolación libre                             │
 │  · deriva nivel_riesgo_predicho del barrio:                                        │
 │      tasa_predicha ≥ p_75 → ALTO · ≥ p_50 → MEDIO · resto → BAJO                    │
@@ -70,7 +70,7 @@ Construido con **Angular 22 · Tailwind CSS 4 · Mapbox GL** y un **BFF ligero
 
 ```bash
 # 1. BFF (lee api/.env — copiado de api/.env.example con tus credenciales)
-cd api && node lib/local-server.mjs     # http://localhost:4201/api/dbx/*
+node scripts/local-server.mjs         # http://localhost:4201/api/dbx/*
 
 # 2. Panel (proxy /api/dbx → 4201 lo resuelve proxy.conf.json)
 npm start                              # http://localhost:4200
@@ -100,7 +100,7 @@ producción se configura como variable de entorno del proyecto en Vercel.
 ## Estructura
 
 ```
-api/                        BFF (entrypoint dbx.mjs + lógica lib/dbx-core.mjs + dev lib/local-server.mjs)
+scripts/local-server.mjs    BFF dev en :4201 (npm run bff) — no se despliega en Vercel
 src/app/models/             modelos de la API (Prediccion, Barrio, Municipio)
 src/app/services/           territory.service (fetch, caché), theme, riesgo-color
 src/app/ui/container/dash/  orquestador: mapa + un solo pipeline de datos
