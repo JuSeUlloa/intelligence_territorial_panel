@@ -27,8 +27,9 @@ export async function runQuery(statement) {
       catalog: process.env.DBX_CATALOG,
       schema: process.env.DBX_SCHEMA,
       statement,
-      wait_timeout: "30s",
-      format: "JSON_ARRAY"
+      wait_timeout: "50s",
+      format: "JSON_ARRAY",
+      disposition: "EXTERNAL_LINKS"
     })
   });
   const j = await r.json();
@@ -42,9 +43,14 @@ export async function runQuery(statement) {
     throw new Error(`SQL ${r.status || j.status?.state}: ${detalle}`);
   }
   const cols = j.manifest.schema.columns.map((c) => c.name);
-  return (j.result?.data_array || []).map(
-    (row) => Object.fromEntries(cols.map((c, i) => [c, row[i]]))
-  );
+  let filas = j.result?.data_array || [];
+  for (const link of j.result?.external_links || []) {
+    const parte = await (await fetch(link.external_link)).json();
+    if (Array.isArray(parte)) {
+      filas = filas.concat(parte);
+    }
+  }
+  return filas.map((row) => Object.fromEntries(cols.map((c, i) => [c, row[i]])));
 }
 function parseGroup(body) {
   const s = String(body ?? "").trim();
@@ -112,21 +118,16 @@ const GOLD_COLS = `municipio, codigo_dane, departamento, mes, anio, tasa_predich
   tasa_real, total_tematica, tematica_mes_anterior, pob_dane_2025, error,
   abs_error, sq_error, ape_pct, nivel_riesgo_real, nivel_riesgo_predicho,
   p_25, p_50, p_75`;
-const TABLA_PRED_BARRIO = process.env.DBX_TABLE_PRED_NEIGHBORHOOD || "hurto_personas_gold_municipio";
+const TABLA_PRED_BARRIO = process.env.DBX_TABLE_PRED_NEIGHBORHOOD || "hurto_personas_prediccion_municipio";
+const TABLA_GOLD_BARRIO = process.env.DBX_TABLE_GOLD_BARRIO || "hurto_personas_gold_municipio";
 const TABLA_THRESH_BARRIO = process.env.DBX_TABLE_THRESH_BARRIO || "thresholds_shrinkage_municipio";
 const BARRIO_PRED_SELECT = `
-    SELECT p.codigo_dane, p.id_barrio, p.barrio, p.mes, p.anio,
+    SELECT p.codigo_dane AS codigo_dane, p.id_barrio, p.barrio, p.mes, p.anio,
+      SUBSTR(CAST(p.codigo_dane AS STRING), 1, 2) AS departamento,
       p.tasa_predicha, p.pob_dane_2025, p.conteo_predicho,
-      t.p_25, t.p_50, t.p_75,
-      CASE
-        WHEN t.p_50 IS NULL THEN NULL
-        WHEN p.tasa_predicha >= t.p_75 THEN 'ALTO'
-        WHEN p.tasa_predicha >= t.p_50 THEN 'MEDIO'
-        ELSE 'BAJO'
-      END AS nivel_riesgo_predicho
-    FROM ${TABLA_PRED_BARRIO} p
-    LEFT JOIN ${TABLA_THRESH_BARRIO} t
-      ON t.id_barrio = p.id_barrio`;
+      p.tematica_mes_anterior, p.tasa_real, p.abs_error, p.sq_error,
+      p.nivel_riesgo_real, p.nivel_riesgo_predicho, p.p_25, p.p_50, p.p_75
+    FROM ${TABLA_GOLD_BARRIO} p`;
 export default async function handler(req, res) {
   const esWeb = typeof req?.headers?.get === "function";
   if (esWeb) {
@@ -178,14 +179,26 @@ async function runQueryForRoute(path) {
       return runQuery(`SELECT ${GOLD_COLS} FROM hurtos_personas_consolidado WHERE mes = ${mes}`);
     }
     case (seg0 === "prediction" && !seg1):
-      return runQuery(`SELECT ${GOLD_COLS} FROM hurtos_personas_consolidado
-        WHERE mes = (SELECT MAX(mes) FROM hurtos_personas_consolidado)`);
+      return runQuery(`SELECT municipio, codigo_dane, departamento, mes, anio,
+        tasa_predicha, tasa_real, total_tematica, tematica_mes_anterior,
+        pob AS pob_dane_2025, error, abs_error, sq_error, ape_pct,
+        nivel_riesgo_real, nivel_riesgo_predicho, p_25, p_50, p_75
+        FROM (
+          SELECT g.*, COALESCE(g.pob_dane_2025, ref.pob_dane) AS pob
+          FROM hurtos_personas_consolidado g
+          LEFT JOIN (
+            SELECT codigo_dane, MAX(pob_dane_2025) AS pob_dane
+            FROM hurtos_personas_consolidado
+            WHERE pob_dane_2025 IS NOT NULL
+            GROUP BY codigo_dane
+          ) ref ON ref.codigo_dane = g.codigo_dane
+        ) WHERE mes = (SELECT MAX(mes) FROM hurtos_personas_consolidado)`);
     case (seg0 === "prediction" && seg1 === "neighborhood" && !seg2):
       return runQuery(BARRIO_PRED_SELECT);
     case (seg0 === "prediction" && seg1 === "neighborhood" && seg2 === "current"):
       return runQuery(`${BARRIO_PRED_SELECT}
         WHERE p.anio * 100 + p.mes = (
-          SELECT MAX(p2.anio * 100 + p2.mes) FROM ${TABLA_PRED_BARRIO} p2
+          SELECT MAX(p2.anio * 100 + p2.mes) FROM ${TABLA_GOLD_BARRIO} p2
         )`);
     case (seg0 === "prediction" && seg1 === "neighborhood" && !!seg2): {
       const mes = Number(seg2);

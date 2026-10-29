@@ -126,7 +126,7 @@ describe("Dash", () => {
     expect(barrioCalls).toBe(1);
     expect(muniAllCalls).toEqual([]);
     expect(muniDeptCalls).toEqual([]);
-    expect(predMunCalls).toBe(1);
+    expect(predMunCalls).toBe(2);
     expect(predCalls).toBe(1);
   });
   it("should reset the map to the department layer on filters reset", () => {

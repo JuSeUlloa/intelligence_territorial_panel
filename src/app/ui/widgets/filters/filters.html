@@ -27,6 +27,13 @@
     class="sm:flex sm:min-w-0 sm:flex-1 sm:flex-wrap sm:items-end sm:gap-3"
     [class]="abierto() ? 'grid gap-3 sm:gap-3' : 'hidden'"
   >
+    <label class="block" aria-label="Año del dataset activo">
+      <span class="mb-1 block text-xs font-medium text-subtle">Año</span>
+      <h3 class="text-2xl font-semibold leading-none text-foreground">{{ anio ?? '—' }}</h3>
+      <span class="mt-0.5 block max-w-24 truncate text-[10px] leading-none text-subtle" [title]="fuente + ' · ' + subtituloFuente">
+        {{ fuente }}{{ subtituloFuente ? ' · ' + subtituloFuente : '' }}
+      </span>
+    </label>
     <label class="block sm:w-64">
       <span class="mb-1 block text-xs font-medium text-subtle">Municipio</span>
       <div class="relative">
