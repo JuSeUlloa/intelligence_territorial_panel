@@ -29,7 +29,6 @@ export async function runQuery(statement) {
       statement,
       wait_timeout: "30s",
       format: "JSON_ARRAY"
-      // mismo formato que usa la API Flask
     })
   });
   const j = await r.json();
@@ -125,8 +124,30 @@ const BARRIO_PRED_SELECT = `
     LEFT JOIN ${TABLA_THRESH_BARRIO} t
       ON t.id_barrio = p.id_barrio`;
 export default async function handler(req, res) {
+  const esWeb = typeof req?.headers?.get === "function";
+  if (esWeb) {
+    const url = new URL(req.url);
+    let rutaWeb = url.searchParams.get("ruta") ?? url.pathname.replace(/^\/api\/dbx\/?/, "");
+    if (rutaWeb.includes("%")) {
+      try {
+        rutaWeb = decodeURIComponent(rutaWeb);
+      } catch {}
+    }
+    try {
+      const data = await runQueryForRoute(rutaWeb);
+      return new Response(JSON.stringify({ status: "Ok", response: data }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ status: "degraded", error: String(e.message || e) }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  }
   const queryRuta = req.query?.ruta;
-  const fromUrl = req.url.replace(/^\/api\/dbx\/?/, "").split("?")[0];
+  const fromUrl = String(req.url ?? "").replace(/^\/api\/dbx\/?/, "").split("?")[0];
   let path = typeof queryRuta === "string" && queryRuta.length > 0 ? queryRuta : Array.isArray(queryRuta) ? queryRuta.map(encodeURIComponent).join("/") : fromUrl;
   if (path.includes("%")) {
     try {
