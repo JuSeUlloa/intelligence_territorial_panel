@@ -142,6 +142,7 @@ export class Dash {
       }
       this.hoverPopup?.remove();
       map2.setStyle(dark ? STYLE_DARK : STYLE_LIGHT);
+      map2.setProjection("mercator");
       map2.on("styledata", () => this.retryAddLayers(map2));
     });
     effect(() => {
@@ -622,6 +623,7 @@ export class Dash {
                         attributionControl: false
       });
       this.map = map2;
+      map2.setProjection("mercator");
       map2.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
       map2.on("error", (event) => {
         const message = String(event.error?.message ?? "");
@@ -634,6 +636,7 @@ export class Dash {
       });
       map2.on("load", () => {
         this.loading.set(false);
+        map2.setProjection("mercator");
         const encuadre = map2.cameraForBounds(COLOMBIA_MAX_BOUNDS);
         const zoomDeEncuadre = encuadre?.zoom ?? 4.4;
         map2.setMinZoom(Math.max(3.5, zoomDeEncuadre - 0.4));
