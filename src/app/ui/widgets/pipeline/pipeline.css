@@ -1,0 +1,174 @@
+/* Diagrama de flujo: nodos centrados con conectores verticales */
+.pipeline-flujo {
+  position: relative;
+}
+.pipeline-nodo {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+}
+.pipeline-nodo .nodo {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 6%);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.pipeline-nodo .nodo:hover {
+  border-color: var(--primary);
+  box-shadow: 0 3px 10px oklch(0 0 0 / 10%);
+}
+.nodo-icono {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+}
+.nodo-cuerpo {
+  min-width: 0;
+}
+.nodo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.nodo-nombre {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.nodo-paso {
+  margin-top: 0.05rem;
+  font-size: 0.65rem;
+  color: var(--fg-subtle);
+}
+.nodo-detalle {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+/* Chip de capa del lakehouse */
+.capa {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+.capa-info {
+  color: var(--info);
+  background: color-mix(in oklab, var(--info) 12%, var(--surface));
+}
+.capa-bronze {
+  color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 12%, var(--surface));
+}
+.capa-silver {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.capa-modelo {
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, var(--surface));
+}
+.capa-gold {
+  color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 20%, var(--surface));
+}
+.capa-analitica {
+  color: var(--accent, var(--info));
+  background: color-mix(in oklab, var(--accent, var(--info)) 12%, var(--surface));
+}
+/* Iconos de nodo según capa */
+.nodo-icono[data-capa="INGESTA"] {
+  color: var(--info);
+  background: color-mix(in oklab, var(--info) 12%, var(--surface));
+}
+.nodo-icono[data-capa="BRONZE"] {
+  color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 12%, var(--surface));
+}
+.nodo-icono[data-capa="SILVER"] {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.nodo-icono[data-capa="MODELO"] {
+  color: var(--success);
+  background: color-mix(in oklab, var(--success) 12%, var(--surface));
+}
+.nodo-icono[data-capa="GOLD"] {
+  color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 20%, var(--surface));
+}
+.nodo-icono[data-capa="ANALÍTICA"] {
+  color: var(--accent, var(--info));
+  background: color-mix(in oklab, var(--accent, var(--info)) 12%, var(--surface));
+}
+/* Conectores con flecha */
+.conector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.25rem 0;
+  color: var(--border-strong);
+}
+.conector .fa-arrow-down-long {
+  font-size: 0.9rem;
+}
+.conector-etiqueta {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: var(--fg-subtle);
+}
+/* Terminales (inicio / fin): forma píldora de los diagramas de flujo */
+.pipeline-terminal {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1.2rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+.terminal-fin {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border-strong));
+  background: color-mix(in oklab, var(--primary) 7%, var(--surface));
+  color: var(--primary);
+}
+/* Enlaces a repositorios */
+.pipeline-links .enlace-repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  color: var(--fg-muted);
+  background: var(--surface-2);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.pipeline-links .enlace-repo:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}

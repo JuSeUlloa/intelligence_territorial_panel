@@ -1,0 +1,111 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    class="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]"
+    (click)="cerrarSolicitud.emit()"
+    aria-hidden="true"
+  ></div>
+  <div
+    id="diccionario-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Diccionario de datos"
+    class="relative flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
+  >
+    <header class="flex items-start justify-between gap-3 border-b border-border bg-surface px-5 py-4">
+      <div class="min-w-0">
+        <h2 class="text-sm font-semibold">Diccionario de datos</h2>
+        <p class="text-xs text-muted">
+          Silver y features del modelo ·
+          <a
+            class="enlace-repo inline-flex"
+            href="https://github.com/JuSeUlloa/territorial_inteligence_methodology"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Diccionario de datos en el repo de metodología"
+          >
+            <i class="fa-brands fa-github" aria-hidden="true"></i>
+            <span class="font-mono text-[10px]">territorial_inteligence_methodology/diccionario_datos.md</span>
+          </a>
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost h-8 w-8 !p-0"
+        (click)="cerrarSolicitud.emit()"
+        aria-label="Cerrar diccionario de datos"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    @if (estado() === "cargando") {
+      <div class="flex-1 space-y-3 px-6 py-6">
+        <div class="h-5 w-1/2 animate-pulse rounded bg-track"></div>
+        <div class="h-3 w-full animate-pulse rounded bg-track"></div>
+        <div class="h-3 w-4/5 animate-pulse rounded bg-track"></div>
+        <div class="h-32 w-full animate-pulse rounded bg-track"></div>
+        <div class="h-3 w-2/3 animate-pulse rounded bg-track"></div>
+      </div>
+    } @else if (estado() === "error") {
+      <div class="flex min-h-64 flex-col items-center justify-center gap-2 text-center">
+        <i class="fa-solid fa-triangle-exclamation text-2xl text-warning" aria-hidden="true"></i>
+        <p class="text-sm text-muted">No se pudo cargar el diccionario de datos.</p>
+        <button type="button" class="btn btn-secondary text-xs" (click)="cargar()">
+          <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+          Reintentar
+        </button>
+      </div>
+    } @else {
+      <div class="flex min-h-0 flex-1">
+        <nav
+          class="diccionario-indice hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-surface-2/50 px-3 py-4 md:block"
+          aria-label="Secciones del diccionario"
+        >          <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-subtle">Contenido</p>
+          <ul class="space-y-0.5">
+            @for (item of indice(); track item.id) {
+              <li>
+                <button
+                  type="button"
+                  class="w-full rounded-md px-2 py-1.5 text-left text-xs leading-snug text-muted transition-colors hover:bg-track/60"
+                  [class.bg-primary-soft]="seccionActiva() === item.id"
+                  [class.text-primary]="seccionActiva() === item.id"
+                  [class.font-medium]="seccionActiva() === item.id"
+                  (click)="irA(item.id)"
+                >
+                  {{ item.texto }}
+                </button>
+              </li>
+            }
+          </ul>
+          <div class="dicc-links mt-4 space-y-1.5 border-t border-border px-2 pt-3">
+            <a
+              class="enlace-repo block"
+              href="https://github.com/JuSeUlloa/territorial_inteligence_methodology"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Diccionario en el repo de metodología"
+            >
+              <i class="fa-brands fa-github" aria-hidden="true"></i>
+              repo metodología
+            </a>
+            <a
+              class="enlace-repo block"
+              href="https://github.com/JuSeUlloa/intelligence_territorial_panel"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Panel que consume estas variables (este dashboard)"
+            >
+              <i class="fa-brands fa-github" aria-hidden="true"></i>
+              repo panel
+            </a>
+          </div>
+        </nav>
+        <div
+          class="diccionario-md min-w-0 flex-1 overflow-y-auto px-6 py-6"
+          (scroll)="onScrollDocumento($event)"
+        >
+          <div [innerHTML]="contenido()"></div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

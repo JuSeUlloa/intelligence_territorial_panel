@@ -1,0 +1,162 @@
+<button
+  type="button"
+  class="btn btn-ghost"
+  (click)="toggle()"
+  aria-controls="config-panel"
+  [attr.aria-expanded]="open()"
+  [attr.aria-label]="open() ? 'Cerrar configuración del panel' : 'Abrir configuración del panel'"
+  title="Configuración del panel"
+>
+  <i class="fa-solid fa-gear" aria-hidden="true"></i>
+</button>
+<div
+  class="fixed inset-0 z-50"
+  [class.pointer-events-none]="!open()"
+  [attr.aria-hidden]="!open()"
+>
+  <div
+    class="absolute inset-0 bg-foreground/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out"
+    [class.opacity-0]="!open()"
+    [class.opacity-100]="open()"
+    (click)="close()"
+    aria-hidden="true"
+  ></div>
+  <aside
+    id="config-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Configuración del panel"
+    [attr.inert]="open() ? null : ''"
+    class="absolute inset-y-0 right-0 flex w-80 max-w-[85vw] flex-col border-l border-border bg-surface shadow-lg transition-transform duration-300 ease-out"
+    [class.translate-x-0]="open()"
+    [class.translate-x-full]="!open()"
+  >
+    <header class="flex items-center justify-between border-b border-border px-5 py-4">
+      <div>
+        <h2 class="text-sm font-semibold">Configuración</h2>
+        <p class="text-xs text-muted">Preferencias del panel</p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost h-8 w-8 !p-0"
+        (click)="close()"
+        aria-label="Cerrar panel"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+      <section aria-labelledby="config-map-label">
+        <h3 id="config-map-label" class="mb-3 text-xs font-semibold uppercase tracking-wide text-subtle">
+          Mapa
+        </h3>
+        <div class="space-y-3">
+          <label
+            class="flex cursor-pointer items-center justify-between rounded-control border border-border px-3 py-3 transition-colors hover:bg-surface-2"
+          >
+            <span class="space-y-0.5">
+              <span class="block text-sm font-medium">Tooltips al pasar el cursor</span>
+              <span class="block text-xs text-muted">Muestra el detalle del territorio al recorrer el mapa.</span>
+            </span>
+            <span class="relative inline-flex h-6 w-11 shrink-0 items-center">
+              <input
+                type="checkbox"
+                class="peer sr-only"
+                [checked]="config.tooltipMapa()"
+                (change)="config.setTooltipMapa(!config.tooltipMapa())"
+                aria-label="Tooltips al pasar el cursor"
+              />
+              <span
+                class="h-full w-full rounded-full bg-track transition-colors peer-checked:bg-primary"
+              ></span>
+              <span
+                class="absolute left-0.5 h-5 w-5 rounded-full bg-surface shadow transition-transform peer-checked:translate-x-5"
+              ></span>
+            </span>
+          </label>
+          <label
+            class="flex cursor-pointer items-center justify-between rounded-control border border-border px-3 py-3 transition-colors hover:bg-surface-2"
+          >
+            <span class="space-y-0.5">
+              <span class="block text-sm font-medium">Animar encuadres</span>
+              <span class="block text-xs text-muted">Transición suave al cambiar de nivel o territorio.</span>
+            </span>
+            <span class="relative inline-flex h-6 w-11 shrink-0 items-center">
+              <input
+                type="checkbox"
+                class="peer sr-only"
+                [checked]="config.animarMapa()"
+                (change)="config.setAnimarMapa(!config.animarMapa())"
+                aria-label="Animar encuadres del mapa"
+              />
+              <span
+                class="h-full w-full rounded-full bg-track transition-colors peer-checked:bg-primary"
+              ></span>
+              <span
+                class="absolute left-0.5 h-5 w-5 rounded-full bg-surface shadow transition-transform peer-checked:translate-x-5"
+              ></span>
+            </span>
+          </label>
+        </div>
+      </section>
+      <section aria-labelledby="config-doc-label">
+        <h3 id="config-doc-label" class="mb-3 text-xs font-semibold uppercase tracking-wide text-subtle">
+          Documentación
+        </h3>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            class="flex flex-col items-center gap-2 rounded-control border px-2 py-4 text-xs font-medium transition-colors border-border-strong hover:bg-surface-2"
+            (click)="abrirDocumento('pipeline')"
+          >
+            <i class="fa-solid fa-diagram-project text-xl" aria-hidden="true"></i>
+            Flujo del pipeline
+          </button>
+          <button
+            type="button"
+            class="flex flex-col items-center gap-2 rounded-control border px-2 py-4 text-xs font-medium transition-colors border-border-strong hover:bg-surface-2"
+            (click)="abrirDocumento('diccionario')"
+          >
+            <i class="fa-solid fa-book text-xl" aria-hidden="true"></i>
+            Diccionario de datos
+          </button>
+          <button
+            type="button"
+            class="flex flex-col items-center gap-2 rounded-control border px-2 py-4 text-xs font-medium transition-colors border-border-strong hover:bg-surface-2"
+            (click)="abrirDocumento('arquitecturas')"
+          >
+            <i class="fa-solid fa-sitemap text-xl" aria-hidden="true"></i>
+            Arquitecturas
+          </button>
+        </div>
+        <p class="mt-2 text-[11px] text-muted">
+          Fuente: <span class="font-mono">territorial_inteligence_methodology</span>
+        </p>
+      </section>
+      <section aria-labelledby="config-info-label">
+        <h3 id="config-info-label" class="mb-3 text-xs font-semibold uppercase tracking-wide text-subtle">
+          Información
+        </h3>
+        <div class="card space-y-2 p-4 text-xs text-muted">
+          <p><strong class="text-foreground">Intelligence Territorial Panel</strong></p>
+          <p>Coropleta de riesgo con Mapbox GL, tres niveles territoriales y popups informativos.</p>
+          <p class="font-mono text-[10px] leading-relaxed">Angular · Tailwind 4 · Mapbox GL JS · Databricks</p>
+        </div>
+      </section>
+    </div>
+    <footer class="border-t border-border px-5 py-4">
+      <button type="button" class="btn btn-secondary w-full" (click)="config.reset()">
+        Restablecer configuración
+      </button>
+    </footer>
+  </aside>
+</div>
+@if (vista() === "pipeline") {
+  <app-pipeline (cerrarSolicitud)="cerrarDocumento()" />
+}
+@if (vista() === "diccionario") {
+  <app-diccionario (cerrarSolicitud)="cerrarDocumento()" />
+}
+@if (vista() === "arquitecturas") {
+  <app-arquitecturas (cerrarSolicitud)="cerrarDocumento()" />
+}

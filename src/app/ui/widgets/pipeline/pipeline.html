@@ -1,0 +1,107 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    class="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]"
+    (click)="cerrar()"
+    aria-hidden="true"
+  ></div>
+  <div
+    id="pipeline-flujo"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Flujo del pipeline"
+    class="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
+  >
+    <header class="flex items-start justify-between border-b border-border px-5 py-4">
+      <div>
+        <h2 class="text-sm font-semibold">Flujo del pipeline</h2>
+        <p class="text-xs text-muted">
+          territorial_inteligence_pipeline · <span class="font-mono text-[10px]">resources/territorial_intelligence.job.yml</span>
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost h-8 w-8 !p-0"
+        (click)="cerrar()"
+        aria-label="Cerrar flujo del pipeline"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="flex-1 overflow-y-auto px-5 py-6">
+      <p class="mb-4 text-center text-xs text-muted">
+        Job de Databricks: cada tarea ejecuta un <span class="font-mono">--step</span> del wheel
+        encadenado por <span class="font-mono">depends_on</span>.
+      </p>
+      <div class="pipeline-links mb-4 flex flex-wrap justify-center gap-2">
+        <a
+          class="enlace-repo"
+          href="https://github.com/JuSeUlloa/territorial_inteligence_methodology"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Ver el repo del pipeline (job.yml, bronze, silver, modelo)"
+        >
+          <i class="fa-brands fa-github" aria-hidden="true"></i>
+          repo metodología · <span class="font-mono">resources/territorial_intelligence.job.yml</span>
+        </a>
+        <a
+          class="enlace-repo"
+          href="https://github.com/JuSeUlloa/intelligence_territorial_panel"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Ver el repo del panel (este dashboard)"
+        >
+          <i class="fa-brands fa-github" aria-hidden="true"></i>
+          repo panel · consume el gold
+        </a>
+      </div>
+
+      <div class="pipeline-flujo">
+        @for (tarea of tareas; track tarea.paso; let esPrimera = $first; let esUltima = $last) {
+          @if (esPrimera) {
+            <div class="pipeline-terminal terminal-inicio mx-auto" aria-hidden="true">
+              <i class="fa-solid fa-file-import" aria-hidden="true"></i>
+              Fuentes Parquet
+            </div>
+            <div class="conector">
+              <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+              <span class="conector-etiqueta">ingesta</span>
+            </div>
+          }
+
+          <div class="pipeline-nodo mx-auto" [attr.data-capa]="tarea.capa">
+            <div class="nodo">
+              <span class="nodo-icono" [attr.data-capa]="tarea.capa">
+                <i class="fa-solid {{ tarea.icono }}" aria-hidden="true"></i>
+              </span>
+              <div class="nodo-cuerpo">
+                <p class="nodo-titulo">
+                  <span class="nodo-nombre">{{ tarea.nombre }}</span>
+                  <span class="capa {{ tarea.capaClase }}">{{ tarea.capa }}</span>
+                </p>
+                <p class="nodo-paso font-mono">{{ tarea.paso }}</p>
+                <p class="nodo-detalle">{{ tarea.detalle }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="conector">
+            @if (!esUltima) {
+              <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+              <span class="conector-etiqueta">depends_on</span>
+            } @else {
+              <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+              <span class="conector-etiqueta">consumo</span>
+            }
+          </div>
+
+          @if (esUltima) {
+            <div class="pipeline-terminal terminal-fin mx-auto" aria-hidden="true">
+              <i class="fa-solid fa-map" aria-hidden="true"></i>
+              Dashboard IT Panel · AI/BI
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>
