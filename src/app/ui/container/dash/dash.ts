@@ -35,14 +35,15 @@ import {
   municipalityName
 } from "../../../services/territory.service";
 import { ThemeService } from "../../../services/theme.service";
+import { ConfigService } from "../../../services/config.service";
 import { Filters, PanelFilters } from "../../widgets/filters/filters";
 import { GeoFilter, GeoSelection } from "../../widgets/geo-filter/geo-filter";
 import { Kpi, KpiPanel } from "../../widgets/kpi/kpi";
 import { Footer } from "../../widgets/footer/footer";
 import { Spinner } from "../../components/spinner/spinner";
 const COLOMBIA_MAX_BOUNDS: [[number, number], [number, number]] = [
-  [-92, -8],
-  [-60, 14]
+  [-105, -10],
+  [-44, 19]
 ];
 const COLOMBIA_CENTER = [-74.2974, 4.711];
 const SOURCE_ID = "poligonos";
@@ -73,6 +74,7 @@ export {
 })
 export class Dash {
   theme = inject(ThemeService);
+  config = inject(ConfigService);
   territory = inject(TerritoryService);
   destroyRef = inject(DestroyRef);
   mapEl = viewChild<ElementRef<HTMLDivElement>>("mapContainer");
@@ -130,7 +132,6 @@ export class Dash {
     municipio: null
   };
   hoverRegistered = false;
-  reintentoRegistrado = false;
   rendicion = 0; predsPool: Map<string, Prediccion> | null = null;
   barrasPorMes: Map<string, Array<{ etiqueta: string; nivel: string; rank: number | null }>> | null = null;
   currentMes: number | null = null;
@@ -144,15 +145,14 @@ export class Dash {
       }
       this.hoverPopup?.remove();
       map2.setStyle(dark ? STYLE_DARK : STYLE_LIGHT);
-      // Tras setStyle la proyección vuelve a la del estilo (globe en v3). Re-aplicarla
-      // solo cuando el NUEVO estilo termine de cargarse evita la "esfera".
+      // setStyle recarga el estilo y las capas custom (fuente + polígonos) se pierden.
+      // En style.load el nuevo estilo ya acepta modificarlo: se re-fijan proyección y
+      // capas con los colores del tema activo SIN depender de styledata (que puede
+      // quedarse sin nuevos eventos si el estilo tarda en "isStyleLoaded").
       map2.once("style.load", () => {
         map2.setProjection("mercator");
+        this.addTerritoryLayers(map2);
       });
-      if (!this.reintentoRegistrado) {
-        this.reintentoRegistrado = true;
-        map2.on("styledata", () => this.retryAddLayers(map2));
-      }
     });
     effect(() => {
       const color = this.fillColor();
@@ -631,7 +631,7 @@ export class Dash {
         container,
         style: this.theme.isDark() ? STYLE_DARK : STYLE_LIGHT,
         center: COLOMBIA_CENTER as [number, number],
-        zoom: 4.6,
+        zoom: 3.6,
         minZoom: 3,
         maxZoom: 13,
                         maxBounds: COLOMBIA_MAX_BOUNDS,
@@ -728,6 +728,10 @@ export class Dash {
     const popup = this.mapbox ? new this.mapbox.Popup({ closeButton: false, closeOnClick: false, offset: 12 }) : null;
     this.hoverPopup = popup;
     const show = (event) => {
+      if (!this.config.tooltipMapa()) {
+        popup?.remove();
+        return;
+      }
       const feature = event.features?.[0];
       if (!feature || !popup) {
         return;
@@ -828,7 +832,7 @@ export class Dash {
       (evento) => map2.on(evento, cancelar)
     );
   }
-    fitToCollection(collection, nivel) {
+  fitToCollection(collection, nivel) {
     const map2 = this.map;
     if (!map2) {
       return;
@@ -843,11 +847,30 @@ export class Dash {
       }
       return;
     }
+    // Encuadrar y luego bajar exactamente UN nivel de zoom (zoom - 1) para dar
+    // más contexto alrededor del territorio. El guardia de sesión garantiza que
+    // el ajuste se aplique UNA sola vez aun si el encuadre se lanza dos veces.
+    const sesion = this.rendicion;
+    const duracion = this.config.animarMapa() === true ? 1100 : 0;
+    const bajarNivel = () => {
+      // Ajuste instantáneo: jumpTo evita depender de animaciones pendientes.
+      map2.jumpTo({ zoom: Math.max(map2.getMinZoom(), map2.getZoom() - 2) });
+    };
     map2.fitBounds(bounds, {
       padding: 48,
       maxZoom: MAX_ZOOM_BY_LEVEL[nivel],
-      duration: 1100
+      duration: duracion
     });
+    if (duracion > 0) {
+      map2.once("moveend", () => {
+        if (sesion !== this.rendicion) {
+          return;
+        }
+        bajarNivel();
+      });
+    } else {
+      bajarNivel();
+    }
   }
     boundsOf(collection) {
     const box = computeBounds(collection);

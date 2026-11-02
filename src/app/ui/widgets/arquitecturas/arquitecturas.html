@@ -1,0 +1,142 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    class="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]"
+    (click)="cerrar()"
+    aria-hidden="true"
+  ></div>
+  <div
+    id="arquitecturas-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Arquitecturas"
+    class="relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
+  >
+    <header class="flex items-start justify-between border-b border-border px-5 py-4">
+      <div>
+        <h2 class="text-sm font-semibold">Arquitecturas</h2>
+        <p class="text-xs text-muted">
+          KDD · cliente-servidor · medallion — fuente: <span class="font-mono text-[10px]">territorial_inteligence_methodology</span>
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost h-8 w-8 !p-0"
+        (click)="cerrar()"
+        aria-label="Cerrar arquitecturas"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="flex flex-wrap gap-1.5 border-b border-border px-5 py-2.5">
+      @for (v of vistas; track v.id) {
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+          [class.border-primary]="vista() === v.id"
+          [class.bg-primary-soft]="vista() === v.id"
+          [class.text-primary]="vista() === v.id"
+          [class.border-border]="vista() !== v.id"
+          [class.text-muted]="vista() !== v.id"
+          [class.hover:bg-surface-2]="vista() !== v.id"
+          (click)="setVista(v.id)"
+        >
+          <i class="fa-solid {{ v.icono }}" aria-hidden="true"></i>
+          {{ v.nombre }}
+        </button>
+      }
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-5 py-6">
+      @if (vista() === "kdd") {
+        <p class="mb-5 text-xs text-muted">
+          Knowledge Discovery in Databases: proceso de descubrimiento de
+          conocimiento mapeado a las etapas concretas del proyecto.
+        </p>
+      } @else if (vista() === "servidor") {
+        <p class="mb-5 text-xs text-muted">
+          Patrón cliente-servidor: el navegador (render del panel) consulta a
+          un servidor de aplicación que arma y ejecuta SQL contra el warehouse.
+        </p>
+      } @else {
+        <p class="mb-5 text-xs text-muted">
+          Arquitectura medallion de Databricks: capas bronze → silver → gold
+          con calidad y modelo en el medio y carril barrial independiente.
+        </p>
+      }
+
+      <div class="arq-flujo">
+        @for (nodo of opciones(); track nodo.etapa; let primera = $first) {
+          @if (primera) {
+            <div class="arq-terminal arq-terminal-inicio mx-auto">
+              <i class="fa-solid fa-circle-nodes" aria-hidden="true"></i>
+              @switch (vista()) {
+                @case ("kdd") { Datos crudos }
+                @case ("servidor") { Usuario }
+                @default { Fuentes }
+              }
+            </div>
+            <div class="arq-conector">
+              <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+            </div>
+          }
+
+          <div class="arq-nodo">
+            <div class="nodo">
+              <span class="nodo-icono" [attr.data-capa]="nodo.color">
+                <i class="fa-solid {{ nodo.icono }}" aria-hidden="true"></i>
+              </span>
+              <div class="nodo-cuerpo">
+                <p class="nodo-titulo">
+                  <span class="nodo-nombre">{{ nodo.etapa }}</span>
+                </p>
+                <p class="nodo-detalle">{{ nodo.detalle }}</p>
+                @if (mostrarTablas()) {
+                  <p class="arq-salidas font-mono">
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    {{ nodo.salidas }}
+                  </p>
+                } @else {
+                  <p class="arq-mapeo font-mono">
+                    <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                    {{ nodo.mapeo }}
+                  </p>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="arq-conector">
+            <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+          </div>
+        }
+        <div class="arq-terminal arq-terminal-fin mx-auto">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+          Decisión informada
+        </div>
+      </div>
+
+      <div class="arq-links mt-6 flex flex-wrap justify-center gap-2 border-t border-border pt-4">
+        <a
+          class="enlace-repo"
+          href="https://github.com/JuSeUlloa/territorial_inteligence_methodology"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Datos, pipelines, modelo y API (Flask/Databricks App)"
+        >
+          <i class="fa-brands fa-github" aria-hidden="true"></i>
+          territorial_inteligence_methodology
+        </a>
+        <a
+          class="enlace-repo"
+          href="https://github.com/JuSeUlloa/intelligence_territorial_panel"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Panel Angular que consume el gold (este dashboard)"
+        >
+          <i class="fa-brands fa-github" aria-hidden="true"></i>
+          intelligence_territorial_panel
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
