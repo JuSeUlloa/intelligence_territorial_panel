@@ -51,7 +51,7 @@ export class Kpi {
       },
       {
         id: 'tasa',
-        icono: 'fa-solid fa-percent',
+        icono: 'fa-solid fa-chart-line',
         etiqueta: 'Tasa promedio',
         valor: decimal(tasaMedia),
         mutado: false,
