@@ -229,6 +229,22 @@ async function runQueryForRoute(path) {
       return runQuery(`SHOW TABLES IN ${process.env.DBX_CATALOG}.${process.env.DBX_SCHEMA}`);
     case (seg0 === "bronze" && !seg1):
       return runQuery(`SELECT * FROM ${TABLA_BRONCE}`);
+    case (seg0 === "bronze" && !!seg1): {
+      let filtro = seg1;
+      if (filtro.includes("%")) {
+        try {
+          filtro = decodeURIComponent(filtro);
+        } catch {}
+      }
+      if (/^\d+$/.test(filtro)) {
+        if (filtro.length !== 5) {
+          throw new Error(`c\xf3digo de municipio inv\xe1lido: ${seg1} (usa c\xf3digo DANE de 5 d\xedgitos)`);
+        }
+        return runQuery(`SELECT * FROM ${TABLA_BRONCE} WHERE CAST(codigo_dane AS STRING) = '${filtro}'`);
+      }
+      const nombre = filtro.replace(/'/g, "''");
+      return runQuery(`SELECT * FROM ${TABLA_BRONCE} WHERE municipio ILIKE '%${nombre}%'`);
+    }
     case (seg0 === "neighborhood" && !seg1): {
       const table = process.env.DBX_TABLE_NEIGHBORHOOD;
       if (!table) throw new Error("DBX_TABLE_NEIGHBORHOOD no configurada");
