@@ -121,6 +121,7 @@ const GOLD_COLS = `municipio, codigo_dane, departamento, mes, anio, tasa_predich
 const TABLA_PRED_BARRIO = process.env.DBX_TABLE_PRED_NEIGHBORHOOD || "hurto_personas_prediccion_municipio";
 const TABLA_GOLD_BARRIO = process.env.DBX_TABLE_GOLD_BARRIO || "hurto_personas_gold_municipio";
 const TABLA_THRESH_BARRIO = process.env.DBX_TABLE_THRESH_BARRIO || "thresholds_shrinkage_municipio";
+const TABLA_BRONCE = process.env.DBX_TABLE_BRONZE || "hurto_personas_bronce_municipio";
 const BARRIO_PRED_SELECT = `
     SELECT p.codigo_dane AS codigo_dane, p.id_barrio, p.barrio, p.mes, p.anio,
       SUBSTR(CAST(p.codigo_dane AS STRING), 1, 2) AS departamento,
@@ -226,6 +227,8 @@ async function runQueryForRoute(path) {
     }
         case (seg0 === "tables" && !seg1):
       return runQuery(`SHOW TABLES IN ${process.env.DBX_CATALOG}.${process.env.DBX_SCHEMA}`);
+    case (seg0 === "bronze" && !seg1):
+      return runQuery(`SELECT * FROM ${TABLA_BRONCE}`);
     case (seg0 === "neighborhood" && !seg1): {
       const table = process.env.DBX_TABLE_NEIGHBORHOOD;
       if (!table) throw new Error("DBX_TABLE_NEIGHBORHOOD no configurada");
