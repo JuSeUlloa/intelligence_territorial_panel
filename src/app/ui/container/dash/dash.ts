@@ -1088,8 +1088,10 @@ export function serieMensualTasas(
     };
     if (pred.tasa_real > 0) {
       acumulaPorMuni(entry.realPorMuni, key, pred.tasa_real);
-      acumulaPorMuni(entry.predPorMuni, key, pred.tasa_predicha);
     }
+    // La predicha se acumula siempre: en el mes actual aún no hay dato real
+    // (tasa_real = 0) y sin esto la serie quedaría en 0 en vez del valor predicho
+    acumulaPorMuni(entry.predPorMuni, key, pred.tasa_predicha);
     porMes.set(mesKey, entry);
   });
   return [...porMes.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, e]) => ({

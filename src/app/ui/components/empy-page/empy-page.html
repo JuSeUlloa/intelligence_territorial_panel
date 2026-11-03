@@ -1,1 +1,46 @@
-<p>empy-page works!</p>
+<main class="empy-fondo relative flex min-h-screen items-center justify-center p-4">
+  <div class="w-full max-w-lg rounded-xl border border-border bg-surface p-8 text-center shadow-lg">
+    <!-- Figura decorativa: ruta perdida -->
+    <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-soft">
+      <i class="fa-solid fa-map-location-dot text-3xl text-primary" aria-hidden="true"></i>
+    </div>
+
+    <p
+      class="flex items-center justify-center gap-[0.04em] font-mono text-[7rem] leading-none font-semibold tracking-tight"
+      aria-label="Error 404"
+    >
+      <span class="text-primary" aria-hidden="true">4</span>
+      <span class="empy-cero" aria-hidden="true">0</span>
+      <span class="text-primary" aria-hidden="true">4</span>
+    </p>
+
+    <h1 class="mt-3 text-2xl font-semibold">Página no encontrada</h1>
+    <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
+      La dirección que buscaste no corresponde a ninguna vista del
+      <strong>Intelligence Territorial Panel</strong>. Es posible que el enlace haya
+      cambiado o que la ruta esté mal escrita.
+    </p>
+
+    @if (ruta(); as rutaActual) {
+      <p class="mt-4 inline-flex max-w-full items-center gap-2 overflow-hidden rounded-md border border-border bg-surface-2 px-3 py-1.5">
+        <i class="fa-solid fa-link-slash text-[10px] text-subtle" aria-hidden="true"></i>
+        <span class="truncate font-mono text-[11px] text-subtle">{{ rutaActual }}</span>
+      </p>
+    }
+
+    <div class="mt-7 flex flex-wrap items-center justify-center gap-2">
+      <a routerLink="/dash" class="btn btn-primary h-9">
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+        Ir al dashboard
+      </a>
+      <button
+        type="button"
+        class="btn btn-secondary h-9"
+        (click)="recargar()"
+      >
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+        Reintentar
+      </button>
+    </div>
+  </div>
+</main>
