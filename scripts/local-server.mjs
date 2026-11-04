@@ -32,6 +32,13 @@ http.createServer(async (req, res) => {
     send(text) {
       res.writeHead(this._st || 200, { "content-type": "application/json" });
       res.end(text);
+    },
+    writeHead(...args) {
+      res.writeHead(...args);
+      return this;
+    },
+    end(body) {
+      res.end(body);
     }
   };
   try {

@@ -1,4 +1,5 @@
 let tokenCache = null;
+import { specOpenapi, paginaSwagger } from "./openapi.mjs";
 async function getM2mToken() {
   if (tokenCache && Date.now() < tokenCache.exp) return tokenCache.token;
   const body = new URLSearchParams({
@@ -140,6 +141,10 @@ export default async function handler(req, res) {
       } catch {}
     }
     try {
+      const doc = respuestaDocumentacion(rutaWeb);
+      if (doc) {
+        return new Response(doc.body, { status: doc.status, headers: doc.headers });
+      }
       const data = await runQueryForRoute(rutaWeb);
       return new Response(JSON.stringify({ status: "Ok", response: data }), {
         status: 200,
@@ -162,11 +167,28 @@ export default async function handler(req, res) {
     }
   }
   try {
+    const doc = respuestaDocumentacion(path);
+    if (doc) {
+      res.writeHead(doc.status, doc.headers);
+      res.end(doc.body);
+      return;
+    }
     const data = await runQueryForRoute(path);
     res.status(200).json({ status: "Ok", response: data });
   } catch (e) {
     res.status(503).json({ status: "degraded", error: String(e.message || e) });
   }
+}
+function respuestaDocumentacion(path) {
+  if (path !== "openapi.json" && path !== "docs") {
+    return null;
+  }
+  const esSpec = path === "openapi.json";
+  return {
+    status: 200,
+    headers: { "content-type": esSpec ? "application/json" : "text/html; charset=utf-8", "cache-control": "no-store" },
+    body: esSpec ? JSON.stringify(specOpenapi()) : paginaSwagger(),
+  };
 }
 async function runQueryForRoute(path) {
   const [seg0, seg1, seg2] = path.split(/\/+/).filter(Boolean);
