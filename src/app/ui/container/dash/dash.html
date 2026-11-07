@@ -6,13 +6,16 @@
     [anio]="anioFuente()"
     [fuente]="fuenteDatos()"
     [subtituloFuente]="subtituloDatos()"
+    [nivel]="nivel()"
     (applyFilters)="onFiltersApply($event)"
     (resetFilters)="onFiltersReset()"
     (togglePrediccion)="onTogglePrediccion()"
     (seleccionMunicipio)="onMunicipioTypeahead($event)"
+    [exportoCorrecto]="exportoCorrecto()"
+    (exportar)="exportarReporteEnCurso($event)"
   />
   <app-kpi class="mb-2 block" [kpis]="kpis()" />
-  <div class="card relative mx-4 overflow-hidden">
+  <div class="card relative isolate mx-4 overflow-hidden">
     @if (mapError()) {
       <div class="flex min-h-[440px] flex-col items-center justify-center gap-3 p-8 text-center">
         <i class="fa-solid fa-map-location-dot text-3xl text-subtle" aria-hidden="true"></i>

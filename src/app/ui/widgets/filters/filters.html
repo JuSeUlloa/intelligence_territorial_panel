@@ -128,6 +128,56 @@
         <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
         Limpiar
       </button>
+      @if (nivel !== 'barrio') {
+      <div class="relative">
+        <button
+          type="button"
+          class="btn btn-secondary h-9 w-full flex-1 whitespace-nowrap sm:w-auto"
+          (click)="toggleExportar()"
+          [attr.aria-expanded]="abrirExportar()"
+          aria-haspopup="menu"
+          aria-label="Exportar reporte gold 2026"
+        >
+          @if (exportando()) {
+            <i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i>
+            Exportando…
+          } @else {
+            <i class="fa-solid fa-file-export" aria-hidden="true"></i>
+            Exportar
+            <i class="fa-solid fa-chevron-down text-[10px]" aria-hidden="true"></i>
+          }
+        </button>
+        @if (abrirExportar()) {
+          <div
+            class="absolute right-0 z-50 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-md"
+            role="menu"
+            aria-label="Formato de exportación"
+          >
+            <span class="block px-3 pb-1 pt-0.5 text-[10px] uppercase tracking-wider text-subtle">
+              Gold {{ anio ?? '' }} · municipios
+            </span>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-surface-2"
+              role="menuitem"
+              (click)="onExportar('csv')"
+            >
+              <i class="fa-solid fa-file-csv text-warning" aria-hidden="true"></i>
+              Excel CSV (.csv)
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-surface-2"
+              role="menuitem"
+              (click)="onExportar('xlsx')"
+            >
+              <i class="fa-solid fa-file-excel text-success" aria-hidden="true"></i>
+              Excel (.xlsx)
+            </button>
+          </div>
+        }
+      </div>
+      }
     </div>
     @if (applied()) {
       <span

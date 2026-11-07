@@ -52,6 +52,8 @@ function normaliza(texto: string): string {
     .trim();
 }
 
+export type TipoExportar = 'csv' | 'xlsx';
+
 @Component({
   selector: 'app-filters',
   styleUrl: './filters.css',
@@ -64,17 +66,22 @@ export class Filters implements OnInit {
   @Output() readonly resetFilters = new EventEmitter<void>();
   @Output() readonly togglePrediccion = new EventEmitter<void>();
   @Output() readonly seleccionMunicipio = new EventEmitter<string | null>();
+  @Output() readonly exportar = new EventEmitter<TipoExportar>();
 
   @Input() meses: number[] = [];
   @Input() verPrediccion = false;
   @Input() anio: number | null = null;
   @Input() fuente = 'Riesgo';
   @Input() subtituloFuente = '';
+  /** Nivel territorial activo del mapa; con "barrio" no se ofrece exportación */
+  @Input() nivel: 'departamento' | 'municipio' | 'barrio' = 'departamento';
 
   protected readonly mes = signal<number | null>(null);
   protected readonly riesgo = signal<'todo' | 'BAJO' | 'MEDIO' | 'ALTO'>('todo');
   protected readonly applied = signal(false);
   protected readonly abierto = signal(false);
+  protected readonly abrirExportar = signal(false);
+  protected readonly exportando = signal(false);
 
   protected readonly nombresMes = MESES;
 
@@ -93,6 +100,9 @@ export class Filters implements OnInit {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['meses'] && this.mes() !== null && !this.meses.includes(this.mes())) {
       this.mes.set(null);
+    }
+    if (changes['exportoCorrecto'] && changes['exportoCorrecto'].currentValue) {
+      this.exportando.set(false);
     }
   }
 
@@ -181,6 +191,19 @@ export class Filters implements OnInit {
   protected toggle(): void {
     this.abierto.set(!this.abierto());
   }
+
+  protected toggleExportar(): void {
+    this.abrirExportar.set(!this.abrirExportar());
+  }
+
+  protected onExportar(formato: TipoExportar): void {
+    this.abrirExportar.set(false);
+    this.exportando.set(true);
+    this.exportar.emit(formato);
+  }
+
+  /** El Dash avisa cuando terminó (o falló) la generación del archivo. */
+  @Input() exportoCorrecto = false;
 
   protected onMesChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;

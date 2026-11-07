@@ -9,6 +9,7 @@ import {
   viewChild
 } from "@angular/core";
 import { Observable, catchError, combineLatest, map, of } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import type { Feature, FeatureCollection } from "geojson";
 import type { Map as MapboxMap, MapLayerMouseEvent, MapLayerTouchEvent, MapboxGeoJSONFeature, Popup } from "mapbox-gl";
 import { environment } from "../../../../environments/environment";
@@ -37,6 +38,11 @@ import {
 import { ThemeService } from "../../../services/theme.service";
 import { ConfigService } from "../../../services/config.service";
 import { Filters, PanelFilters } from "../../widgets/filters/filters";
+import {
+  filasReporteGold,
+  exportarReporte,
+  type TipoExportar,
+} from "../../../utils/exportar";
 import { GeoFilter, GeoSelection } from "../../widgets/geo-filter/geo-filter";
 import { Kpi, KpiPanel } from "../../widgets/kpi/kpi";
 import { Footer } from "../../widgets/footer/footer";
@@ -118,14 +124,18 @@ export class Dash {
     null
   );
   resumenMunicipio = signal<ResumenMunicipio | null>(null);
+  // Datos retenidos para el reporte compartible (botón Exportar en filtros)
+  oroExportar = signal<FeatureCollection | null>(null);
+  depsExportar: Set<string> | null = null;
+  munisExportar: Set<string> | null = null;
+  exportoCorrecto = signal(false);
   alertasCambio = signal<AlertaNivel[]>([]);
   puntosAtencion = signal<PuntosAtencion>({ elevados: [], ciegos: [] });
   map: MapboxMap | null = null;
   mapbox: typeof import('mapbox-gl') | null = null;
   hoverPopup: Popup | null = null;
   geo = viewChild<GeoFilter>("geo");
-  activeCollection: FeatureCollection | null = null;
-  currentSelection: GeoSelection = {
+  activeCollection: FeatureCollection | null = null;  currentSelection: GeoSelection = {
     nivel: "departamento",
     departamento: null,
     departamentoCodigo: null,
@@ -197,9 +207,48 @@ export class Dash {
       this.renderSelection(this.currentSelection);
     }
   }
-    onTogglePrediccion() {
+  onTogglePrediccion() {
     this.verPrediccion.set(!this.verPrediccion());
     this.renderSelection(this.currentSelection);
+  }
+
+  /** Genera y descarga el reporte gold del año 2026 (observado + predicción). */
+  exportarReporteEnCurso(formato: TipoExportar): void {
+    const oro = this.oroExportar();
+    if (!oro) {
+      return;
+    }
+    this.exportoCorrecto.set(false);
+    // La predicción del mes en curso vive en /prediction (tasa_real = 0):
+    // en el flujo normal del panel "prediccionesParaVista" trae gold, no la predicción
+    this.territory.getPrediccionActual().pipe(
+      catchError(() => of(EMPTY_COLLECTION)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: async (prediccionActual) => {
+        let ok = true;
+        try {
+          const filas = filasReporteGold(
+            oro,
+            prediccionActual,
+            2026,
+            this.depsExportar,
+            this.munisExportar,
+          );
+          // reporte_mit_20261107_1105.xlsx / .csv
+          const ahora = new Date();
+          const p2 = (v: number) => String(v).padStart(2, "0");
+          const nombre = `reporte_mit_${ahora.getFullYear()}${p2(ahora.getMonth() + 1)}${p2(ahora.getDate())}_${p2(ahora.getHours())}${p2(ahora.getMinutes())}`;
+          await exportarReporte(filas, formato, nombre);
+        } catch (error) {
+          ok = false;
+          console.error("Exportación fallida", error);
+        } finally {
+          // Reinicia el spinner del botón Exportar en Filtros
+          this.exportoCorrecto.set(ok);
+        }
+      },
+    });
   }
     onGeoSelection(selection) {
     this.renderSelection(selection);
@@ -262,6 +311,7 @@ export class Dash {
           ],
         ) => {
         const barrioSinPrediccion = selection.nivel === "barrio" && !this.verPrediccion();
+        this.oroExportar.set(goldCompleto);
         let datosPredicciones = predicciones;
         let oroBarrio: FeatureCollection | null = null;
         if (barrioSinPrediccion) {
@@ -378,6 +428,8 @@ export class Dash {
             (feature) => daneKey(feature.properties?.["codigo_dane"])
           )
         ) : null;
+        this.depsExportar = depsVisibles;
+        this.munisExportar = munisVisibles;
         this.serieMensual.set(
           selection.nivel === "barrio"
             ? serieMensualBarrioTasas(
