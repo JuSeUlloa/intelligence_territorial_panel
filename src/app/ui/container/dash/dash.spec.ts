@@ -584,7 +584,9 @@ describe("charts below the bars (serie mensual y torta vs. filtros)", () => {
     expect(serie).toHaveLength(1);
     expect(serie[0].etiqueta).toBe("May 26");
   });
-  it("should keep both series on the same universe (rows without tasa real go out of BOTH)", () => {
+  it("should drop rows without tasa real from the real line but keep their prediction", () => {
+    // Comportamiento íntegro solicitado: el mes en curso (sin observe real,
+    // tasa_real = 0) mantiene su predicción en la serie; solo sale de la línea real
     const serie = serieMensualTasas(
       collection(
         row("76109", "4", "2026", "BAJO", "10", "0"),
@@ -593,7 +595,8 @@ describe("charts below the bars (serie mensual y torta vs. filtros)", () => {
     );
     expect(serie).toHaveLength(1);
     expect(serie[0].real).toBeCloseTo(12, 5);
-    expect(serie[0].predicha).toBeCloseTo(2, 5);
+    // promedio de promedios por municipio con tasa_predicha (10 y 2)
+    expect(serie[0].predicha).toBeCloseTo(6, 5);
   });
   it("should count one pie entry per territory with valid predicted level", () => {
     const counts = conteoRiesgoPredicho(
