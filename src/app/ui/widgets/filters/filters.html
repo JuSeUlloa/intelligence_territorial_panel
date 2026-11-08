@@ -35,7 +35,26 @@
       </span>
     </label>
     <label class="block sm:w-64">
-      <span class="mb-1 block text-xs font-medium text-subtle">Municipio</span>
+      <span class="mb-1 flex items-center gap-1.5 text-xs font-medium text-subtle">
+        Municipio
+        @if (estadoCatalogo() === 'cargando') {
+          <span class="flex items-center gap-1 text-primary" title="Cargando listado de municipios…">
+            <i class="fa-solid fa-circle-notch fa-spin text-[9px]" aria-hidden="true"></i>
+            <span class="text-[10px] leading-none">cargando…</span>
+          </span>
+        } @else if (estadoCatalogo() === 'error') {
+          <span class="flex items-center gap-1 text-primary" title="No se pudo cargar el listado">
+            <i class="fa-solid fa-circle-exclamation text-[9px]" aria-hidden="true"></i>
+            <button
+              type="button"
+              class="text-[10px] leading-none underline underline-offset-2"
+              (click)="reintentarCatalogo()"
+            >
+              reintentar
+            </button>
+          </span>
+        }
+      </span>
       <div class="relative">
         <i
           class="fa-solid fa-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-subtle"

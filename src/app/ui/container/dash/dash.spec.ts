@@ -56,7 +56,8 @@ const territoryStub = {
   getPrediccionMunicipioActual: () => {
     predMunCalls += 1;
     return of(EMPTY);
-  }
+  },
+  getConsolidadas: () => of([])
 };
 describe("Dash", () => {
   beforeEach(async () => {

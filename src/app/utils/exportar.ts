@@ -26,6 +26,20 @@ export const COLUMNAS_REPORTE: Array<{ titulo: string; campo: keyof Prediccion |
   { titulo: 'P75', campo: 'p_75' },
 ];
 
+/** Sufijo de alcance para el nombre del archivo según la selección del mapa.
+ *  La exportación no se ofrece en nivel barrio (el botón se oculta con ese nivel). */
+export function sufijoAlcance(
+  departamento: string | null,
+  municipio: string | null,
+): string {
+  const slug = (texto: string | null | undefined): string =>
+    texto
+      ? texto.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '_')
+      : '';
+  // Municipio > Departamento > Nacional
+  return slug(municipio) || slug(departamento) || 'nacional';
+}
+
 export interface FilaReporte extends Record<string, string | number | null> {
   tipo: string;
 }

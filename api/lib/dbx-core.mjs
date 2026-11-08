@@ -123,6 +123,7 @@ const TABLA_PRED_BARRIO = process.env.DBX_TABLE_PRED_NEIGHBORHOOD || "hurto_pers
 const TABLA_GOLD_BARRIO = process.env.DBX_TABLE_GOLD_BARRIO || "hurto_personas_gold_municipio";
 const TABLA_THRESH_BARRIO = process.env.DBX_TABLE_THRESH_BARRIO || "thresholds_shrinkage_municipio";
 const TABLA_BRONCE = process.env.DBX_TABLE_BRONZE || "hurtos_personas_bronce";
+const TABLA_CONSOLIDADO = process.env.DBX_TABLE_CONSOLIDATED || "consolidado";
 const BARRIO_PRED_SELECT = `
     SELECT p.codigo_dane AS codigo_dane, p.id_barrio, p.barrio, p.mes, p.anio,
       SUBSTR(CAST(p.codigo_dane AS STRING), 1, 2) AS departamento,
@@ -266,6 +267,15 @@ async function runQueryForRoute(path) {
       }
       const nombre = filtro.replace(/'/g, "''");
       return runQuery(`SELECT * FROM ${TABLA_BRONCE} WHERE municipio ILIKE '%${nombre}%'`);
+    }
+    case (seg0 === "consolidated" && !seg1):
+      return runQuery(`SELECT * FROM ${TABLA_CONSOLIDADO} ORDER BY codigo_departamento, codigo_municipio`);
+    case (seg0 === "consolidated" && !!seg1): {
+      const codigo = decodeURIComponent(seg1).replace(/\D/g, "");
+      if (codigo.length !== 5) {
+        throw new Error(`c\xf3digo de municipio inv\xe1lido: ${seg1} (usa c\xf3digo DANE de 5 d\xedgitos)`);
+      }
+      return runQuery(`SELECT * FROM ${TABLA_CONSOLIDADO} WHERE CAST(codigo_municipio AS STRING) = '${codigo}'`);
     }
     case (seg0 === "neighborhood" && !seg1): {
       const table = process.env.DBX_TABLE_NEIGHBORHOOD;
