@@ -7,6 +7,7 @@ const TAGS = [
   { name: "Gold", descripcion: "Tabla consolidada por municipio (tasa real + predicha, errores y niveles de riesgo)." },
   { name: "Predicción", descripcion: "Predicciones por municipio y por barrio para el mes en curso o un mes dado." },
   { name: "Bronze", descripcion: "Datos crudos homologados de hurtos de personas por municipio." },
+  { name: "Consolidado", descripcion: "Variables estructurales estáticas por municipio (población, PDET/ZOMAC, clusters, riesgo, PIB)." },
   { name: "Utilidades", descripcion: "Documentación interactiva, spec OpenAPI y catálogo de tablas." },
 ];
 
@@ -194,6 +195,38 @@ const PETICIONES = [
     ejemplos: [
       { status: "Ok", response: [{ database: "territorial_inteligence", tableName: "hurto_personas_gold_municipio", isTemporary: false }] },
     ],
+  },
+  {
+    ruta: "/consolidated",
+    tag: "Consolidado",
+    resumen: "Consolidado · estructurales por municipio",
+    descripcion:
+      "Tabla estructural estática por municipio (una fila por municipio): población DANE 2025, PDET/ZOMAC, índices de riesgo y victimización, presencia de grupos armados, PIB relativo, hurtos históricos, art. 95, islas/áreas no municipalizadas y coordenadas. Es la fuente de las VariablesConsolidadas del modelo.",
+    esquema: "filas",
+    columnas: ["codigo_departamento", "departamento", "codigo_municipio", "municipio", "pob_dane_2025", "pdet", "zomac", "pdet_zomac", "riesgo_victimizacion", "cluster_rv", "pres_grup_armados", "cluster_pga", "victimizacion_seguridad", "cluster_vs", "pib2024_peso_relativo_mun_valor_agregado_departamental", "hurto_2025", "hurto_acum_5", "art95_num1_base_datos_negativa_del_articulo_106_ley_1453_2011", "municipio_isla_area_no_municipalizada", "longitud", "latitud"],
+    ejemplos: [
+      { status: "Ok", response: [{ codigo_departamento: 5, departamento: "Antioquia", codigo_municipio: "05001", municipio: "Medellín", pob_dane_2025: 2569000, pdet: 0, zomac: 0, riesgo_victimizacion: 0.72, cluster_rv: "ALTO", longitud: -75.58, latitud: 6.24 }] },
+    ],
+  },
+  {
+    ruta: "/consolidated/{codigo_dane}",
+    tag: "Consolidado",
+    resumen: "Consolidado · por municipio",
+    descripcion: "Fila estructural de un municipio (código DANE de 5 dígitos).",
+    esquema: "filas",
+    parametros: [
+      {
+        nombre: "codigo_dane",
+        en: "path",
+        descripcion: "Código DANE del municipio (5 dígitos)",
+        tipo: "string",
+        requerido: true,
+      },
+    ],
+    ejemplos: [
+      { status: "Ok", response: [{ codigo_municipio: "05001", municipio: "Medellín", pob_dane_2025: 2569000 }] },
+    ],
+    errores: ["503 si el código no tiene 5 dígitos"],
   },
   {
     ruta: "/openapi.json",

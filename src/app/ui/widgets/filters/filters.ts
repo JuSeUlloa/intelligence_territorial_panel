@@ -96,6 +96,7 @@ export class Filters implements OnInit {
   protected readonly consulta = signal('');
   protected readonly typeaheadAbierto = signal(false);
   protected readonly municipioElegido = signal<string | null>(null);
+  protected readonly estadoCatalogo = signal<'cargando' | 'listo' | 'error'>('cargando');
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['meses'] && this.mes() !== null && !this.meses.includes(this.mes())) {
@@ -107,6 +108,15 @@ export class Filters implements OnInit {
   }
 
   ngOnInit(): void {
+    this.cargarCatalogo();
+  }
+
+  protected reintentarCatalogo(): void {
+    this.cargarCatalogo();
+  }
+
+  private cargarCatalogo(): void {
+    this.estadoCatalogo.set('cargando');
     forkJoin({
       municipios: this.territory.getMunicipios(),
       departamentos: this.territory.getDepartamentos(),
@@ -139,8 +149,12 @@ export class Filters implements OnInit {
         this.catalogo.set(
           [...unicos.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
         );
+        this.estadoCatalogo.set('listo');
       },
-      error: () => this.catalogo.set([]),
+      error: () => {
+        this.catalogo.set([]);
+        this.estadoCatalogo.set('error');
+      },
     });
   }
 

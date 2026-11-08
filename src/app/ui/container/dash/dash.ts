@@ -14,6 +14,7 @@ import type { Feature, FeatureCollection } from "geojson";
 import type { Map as MapboxMap, MapLayerMouseEvent, MapLayerTouchEvent, MapboxGeoJSONFeature, Popup } from "mapbox-gl";
 import { environment } from "../../../../environments/environment";
 import { Prediccion } from "../../../models/prediccion";
+import { VariablesConsolidadas } from "../../../models/variables_consolidadas";
 import {
   buildFillColor,
   mixHex,
@@ -22,7 +23,7 @@ import {
   riskGradient,
   textoLegible
 } from "../../../services/riesgo-color";
-import { Barras, BarraDatos, LineaMes, ResumenMunicipio } from "../../widgets/barras/barras";
+import { Barras, BarraDatos, ContextoEstructural, LineaMes, ResumenMunicipio } from "../../widgets/barras/barras";
 import {
   Analisis,
   AlertaNivel,
@@ -41,6 +42,7 @@ import { Filters, PanelFilters } from "../../widgets/filters/filters";
 import {
   filasReporteGold,
   exportarReporte,
+  sufijoAlcance,
   type TipoExportar,
 } from "../../../utils/exportar";
 import { GeoFilter, GeoSelection } from "../../widgets/geo-filter/geo-filter";
@@ -59,8 +61,8 @@ const STYLE_LIGHT = "mapbox://styles/mapbox/light-v11";
 const STYLE_DARK = "mapbox://styles/mapbox/dark-v11";
 const EMPTY_COLLECTION: FeatureCollection = { type: "FeatureCollection", features: [] };
 const MAX_ZOOM_BY_LEVEL = {
-  departamento: 7,
-  municipio: 11,
+  departamento: 8,
+  municipio: 12,
   barrio: 13
 };
 export {
@@ -124,10 +126,51 @@ export class Dash {
     null
   );
   resumenMunicipio = signal<ResumenMunicipio | null>(null);
+  // Contexto estructural del municipio elegido (tabla consolidado vía /consolidated).
+  // Reactivo: si el catálogo llega después de la selección, el computed recalcula solo.
+  claveContexto = signal<string | null>(null);
+  estructurales = signal<Map<string, VariablesConsolidadas> | null>(null);
+  contextoMunicipio = computed<ContextoEstructural | null>(() => {
+    const clave = this.claveContexto();
+    if (!clave) {
+      return null;
+    }
+    const estructural = this.estructurales()?.get(clave) ?? null;
+    if (!estructural) {
+      return null;
+    }
+    return {
+      pdet: Number(estructural.pdet) === 1,
+      zomac: Number(estructural.zomac) === 1,
+      clusterRv: String(estructural.cluster_rv ?? '').trim() || null,
+      // pres_grup_armados es un índice 0–1 con nulos reales en la tabla;
+      // la presencia establecida solo se considera desde ≈0,5 (percentil 99)
+      grupoArmados:
+        estructural.pres_grup_armados !== null && Number(estructural.pres_grup_armados) >= 0.5,
+      presArmados:
+        estructural.pres_grup_armados !== null ? Number(estructural.pres_grup_armados) : null,
+      pibPeso: Number(estructural.pib2024_peso_relativo_mun_valor_agregado_departamental) > 0
+        ? Number(estructural.pib2024_peso_relativo_mun_valor_agregado_departamental)
+        : null,
+      riesgoVictimizacion: Number(estructural.riesgo_victimizacion) > 0
+        ? Number(estructural.riesgo_victimizacion)
+        : null,
+      seguridad: estructural.victimizacion_seguridad !== null && Number(estructural.victimizacion_seguridad) > 0
+        ? Number(estructural.victimizacion_seguridad)
+        : null,
+      bdNegativa: Number(estructural.art95_num1_base_datos_negativa_del_articulo_106_ley_1453_2011) > 0
+        ? Number(estructural.art95_num1_base_datos_negativa_del_articulo_106_ley_1453_2011)
+        : null,
+      hurtoAcum5: Number(estructural.hurto_acum_5) > 0 ? Number(estructural.hurto_acum_5) : null,
+      hurto2025: Number(estructural.hurto_2025) > 0 ? Number(estructural.hurto_2025) : null,
+      isla: String(estructural.municipio_isla_area_no_municipalizada ?? '').trim() || null,
+    };
+  });
   // Datos retenidos para el reporte compartible (botón Exportar en filtros)
   oroExportar = signal<FeatureCollection | null>(null);
   depsExportar: Set<string> | null = null;
   munisExportar: Set<string> | null = null;
+  alcanceExportar = "nacional";
   exportoCorrecto = signal(false);
   alertasCambio = signal<AlertaNivel[]>([]);
   puntosAtencion = signal<PuntosAtencion>({ elevados: [], ciegos: [] });
@@ -174,6 +217,21 @@ export class Dash {
     this.destroyRef.onDestroy(() => {
       this.map?.remove();
       this.map = null;
+    });
+    // Contexto estructural (una sola red por cache shareReplay del servicio):
+    // alimenta la franja de badges del "Resumen del municipio"
+    this.territory.getConsolidadas().pipe(
+      catchError(() => of([])),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((filas: VariablesConsolidadas[]) => {
+      this.estructurales.set(
+        new Map(
+          filas.map(
+            (fila): [string, VariablesConsolidadas] =>
+              [String(fila.codigo_municipio).padStart(5, '0'), fila],
+          ),
+        ),
+      );
     });
   }
   ngAfterViewInit() {
@@ -235,10 +293,10 @@ export class Dash {
             this.depsExportar,
             this.munisExportar,
           );
-          // reporte_mit_20261107_1105.xlsx / .csv
+          // reporte_mit_<alcance>_<AAAAMMDD>_<HHMM>.xlsx / .csv
           const ahora = new Date();
           const p2 = (v: number) => String(v).padStart(2, "0");
-          const nombre = `reporte_mit_${ahora.getFullYear()}${p2(ahora.getMonth() + 1)}${p2(ahora.getDate())}_${p2(ahora.getHours())}${p2(ahora.getMinutes())}`;
+          const nombre = `reporte_mit_${this.alcanceExportar}_${ahora.getFullYear()}${p2(ahora.getMonth() + 1)}${p2(ahora.getDate())}_${p2(ahora.getHours())}${p2(ahora.getMinutes())}`;
           await exportarReporte(filas, formato, nombre);
         } catch (error) {
           ok = false;
@@ -430,6 +488,10 @@ export class Dash {
         ) : null;
         this.depsExportar = depsVisibles;
         this.munisExportar = munisVisibles;
+        this.alcanceExportar = sufijoAlcance(
+          selection.departamento ?? null,
+          selection.municipio ?? null,
+        );
         this.serieMensual.set(
           selection.nivel === "barrio"
             ? serieMensualBarrioTasas(
@@ -465,6 +527,7 @@ export class Dash {
           const feature = collection.features[0];
           const key = daneKey(feature.properties?.["codigo_dane"]);
           const pred = preds.get(key);
+          this.claveContexto.set(key);
           this.resumenMunicipio.set(
             pred ? {
               municipio: pred.municipio || municipalityName(feature) || "s/d",
@@ -480,6 +543,7 @@ export class Dash {
           );
         } else {
           this.resumenMunicipio.set(null);
+          this.claveContexto.set(null);
         }
         if (esBarrio) {
           const conteos = /* @__PURE__ */ new Map();
@@ -899,14 +963,13 @@ export class Dash {
       }
       return;
     }
-    // Encuadrar y luego bajar exactamente UN nivel de zoom (zoom - 1) para dar
-    // más contexto alrededor del territorio. El guardia de sesión garantiza que
-    // el ajuste se aplique UNA sola vez aun si el encuadre se lanza dos veces.
+    // Encuadrar el territorio y dar UN nivel de zoom de contexto alrededor.
+    // (antes se bajaban 2 niveles y el mapa quedaba demasiado alejado)
     const sesion = this.rendicion;
     const duracion = this.config.animarMapa() === true ? 1100 : 0;
     const bajarNivel = () => {
       // Ajuste instantáneo: jumpTo evita depender de animaciones pendientes.
-      map2.jumpTo({ zoom: Math.max(map2.getMinZoom(), map2.getZoom() - 2) });
+      map2.jumpTo({ zoom: Math.max(map2.getMinZoom(), map2.getZoom() - 1) });
     };
     map2.fitBounds(bounds, {
       padding: 48,

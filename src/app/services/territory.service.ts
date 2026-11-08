@@ -5,11 +5,13 @@ import { Observable, catchError, forkJoin, map, mergeMap, of, shareReplay, throw
 import { environment } from '../../environments/environment';
 import { Departamento } from '../models/departamento';
 import { Barrio } from '../models/barrio';
+import { VariablesConsolidadas } from '../models/variables_consolidadas';
 
 @Injectable({ providedIn: 'root' })
 export class TerritoryService {
   http = inject(HttpClient);
   cache = new Map<string, Observable<FeatureCollection>>();
+  cacheConsolidadas = new Map<string, Observable<VariablesConsolidadas[]>>();
 
   getDepartamentos(): Observable<FeatureCollection> {
     return this.fetch(environment.endpoints.departamentos);
@@ -97,6 +99,27 @@ export class TerritoryService {
     return this.fetch(environment.endpoints.predicion_municipio_actual);
   }
 
+  /** Tabla consolidado: estructurales estáticas por municipio (variables_consolidadas). */
+  getConsolidadas(): Observable<VariablesConsolidadas[]> {
+    const url = `${environment.apiBaseUrl}${environment.endpoints.consolidated}`;
+    let request$ = this.cacheConsolidadas.get(url);
+    if (!request$) {
+      request$ = this.http.get(url).pipe(
+        map(toFilasResponse),
+        map((filas) => filas.map(VariablesConsolidadas.from).filter((f): f is VariablesConsolidadas => f !== null)),
+        catchError((error: unknown) => {
+          this.cacheConsolidadas.delete(url);
+          return throwError(
+            () => (error instanceof HttpErrorResponse ? error : new Error(String(error))),
+          );
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+      this.cacheConsolidadas.set(url, request$);
+    }
+    return request$;
+  }
+
   getMunicipiosConBarrios(
     departamentoCodigo?: string | null,
   ): Observable<FeatureCollection> {
@@ -145,8 +168,19 @@ export class TerritoryService {
   }
 }
 
-function toFeatureCollection(body: unknown): FeatureCollection {
+/** Extrae el arreglo de filas crudas del envelope { status, response }. */
+function toFilasResponse(body: unknown): unknown[] {
   const payload =
+    body && typeof body === 'object' && 'response' in body
+      ? (body as Record<string, unknown>)['response']
+      : body;
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  throw new Error('La respuesta de la API no contiene el arreglo de filas esperado.');
+}
+
+function toFeatureCollection(body: unknown): FeatureCollection {  const payload =
     body && typeof body === 'object' && 'response' in body
       ? (body as Record<string, unknown>)['response']
       : body;

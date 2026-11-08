@@ -29,6 +29,22 @@ export interface ResumenMunicipio {
   meses: Array<{ etiqueta: string; nivel: string; rank: number | null }>;
 }
 
+/** Contexto estructural del municipio (tabla consolidado, estático). */
+export interface ContextoEstructural {
+  pdet: boolean;
+  zomac: boolean;
+  clusterRv: string | null;
+  grupoArmados: boolean | null;
+  presArmados: number | null;
+  pibPeso: number | null;
+  riesgoVictimizacion: number | null;
+  seguridad: number | null;
+  bdNegativa: number | null;
+  hurto2025: number | null;
+  hurtoAcum5: number | null;
+  isla: string | null;
+}
+
 @Component({
   imports: [],
   selector: 'app-barras',
@@ -50,6 +66,114 @@ export class Barras {
   @Input() torta: { bajo: number; medio: number; alto: number } | null = null;
 
   @Input() resumen: ResumenMunicipio | null = null;
+
+  @Input() contexto: ContextoEstructural | null = null;
+
+  protected readonly contextoAbierto = signal(false);
+
+  /** Ítems estructurales para la grilla del resumen (misma métrica que resumenStats). */
+  protected get badgesContexto(): Array<{ texto: string; valor: string; rank: number | null; title: string }> {
+    const contexto = this.contexto;
+    if (!contexto) {
+      return [];
+    }
+    const escala = (texto: string): number | null => {
+      const s = texto.trim().toLowerCase();
+      // Clústeres ordinales de 5 niveles (Bajo → Alto); el orden importa:
+      // "Medio Alto" debe preceder al chequeo de "Alto" y "Medio Bajo" al de "Medio"
+      if (s === 'bajo') return 0;
+      if (s === 'medio bajo') return 0.25;
+      if (s === 'medio') return 0.5;
+      if (s === 'medio alto') return 0.75;
+      if (s === 'alto') return 1;
+      if (s.includes('medio alto')) return 0.75;
+      if (s.includes('alto')) return 1;
+      if (s.includes('medio bajo')) return 0.25;
+      if (s.includes('medio')) return 0.5;
+      if (s.includes('bajo')) return 0;
+      const numero = Number(s);
+      if (Number.isFinite(numero) && numero > 0) {
+        return Math.min(1, numero / 3);
+      }
+      return null;
+    };
+    const badges: Array<{ texto: string; valor: string; rank: number | null; title: string }> = [];
+    if (contexto.pdet) {
+      badges.push({ texto: 'PDET', valor: 'Sí', rank: null, title: 'Programa de Desarrollo con Enfoque Territorial' });
+    }
+    if (contexto.zomac) {
+      badges.push({ texto: 'ZOMAC', valor: 'Sí', rank: null, title: 'Zonas Más Afectadas por el Conflicto' });
+    }
+    if (contexto.clusterRv) {
+      badges.push({
+        texto: 'Cluster RV',
+        valor: contexto.clusterRv,
+        rank: escala(contexto.clusterRv),
+        title: 'Clúster de riesgo de victimización (estructural)',
+      });
+    }
+    if (contexto.riesgoVictimizacion != null) {
+      badges.push({
+        texto: 'R. victimización',
+        valor: contexto.riesgoVictimizacion.toLocaleString('es-CO', { maximumFractionDigits: 2 }),
+        rank: contexto.riesgoVictimizacion >= 2 / 3 ? 1 : contexto.riesgoVictimizacion >= 1 / 3 ? 0.5 : 0,
+        title: 'Índice estructural de riesgo de victimización (0–1)',
+      });
+    }
+    if (contexto.presArmados != null) {
+      badges.push({
+        texto: 'Índice armados',
+        valor: contexto.presArmados.toLocaleString('es-CO', { maximumFractionDigits: 2 }),
+        rank: contexto.presArmados >= 0.5 ? 1 : contexto.presArmados >= 0.3 ? 0.5 : 0,
+        title:
+          'Índice de presencia de grupos armados (0–1). Mediana nacional ≈ 0,10 · p90 ≈ 0,24 · solo unos pocos municipios superan 0,50. Eleva el crimen real y también el sesgo de denuncia',
+      });
+    }
+    if (contexto.grupoArmados === true) {
+      badges.push({ texto: 'Gr. armados', valor: 'Sí', rank: 1, title: 'Presencia de grupos armados establecida (índice ≥ 0,5)' });
+    }
+    if (contexto.seguridad != null) {
+      badges.push({
+        texto: 'Índice seguridad',
+        valor: contexto.seguridad.toLocaleString('es-CO', { maximumFractionDigits: 2 }),
+        rank: null,
+        title: 'Índice estructural de victimización por seguridad (varianza casi nula: muy uniforme entre municipios)',
+      });
+    }
+    if (contexto.bdNegativa != null) {
+      badges.push({
+        texto: 'BD neg. IMEI',
+        valor: contexto.bdNegativa.toLocaleString('es-CO'),
+        rank: null,
+        title: 'Equipos en la base de datos negativa de terminales móviles (Art. 106 de la Ley 1453 de 2011: celulares reportados como robados/perdidos). Auditoría pendiente (A6): puede actuar como proxy de población',
+      });
+    }
+    if (contexto.hurtoAcum5 != null) {
+      badges.push({
+        texto: 'Hurto acum. 5 años',
+        valor: contexto.hurtoAcum5.toLocaleString('es-CO'),
+        rank: null,
+        title: 'Hurtos acumulados de los últimos 5 años (línea base histórica)',
+      });
+    }
+    if (contexto.isla && contexto.isla.toUpperCase() !== 'MUNICIPIO') {
+      badges.push({
+        texto: 'Área no municipalizada / isla',
+        valor: contexto.isla,
+        rank: null,
+        title: 'Categoría territorial: isla o área no municipalizada (afecta presencia logística y de servicios)',
+      });
+    }
+    if (contexto.pibPeso != null) {
+      badges.push({
+        texto: 'PIB dpto (2024)',
+        valor: contexto.pibPeso.toLocaleString('es-CO', { maximumFractionDigits: 1 }) + '%',
+        rank: null,
+        title: 'Peso del PIB municipal en el valor agregado departamental',
+      });
+    }
+    return badges;
+  }
 
   protected get vistaEtiqueta(): string {
     switch (this.vista) {
@@ -174,12 +298,21 @@ export class Barras {
 
   protected onDocumentoClick(event: Event): void {
     const target = event.target as HTMLElement;
-    if (target.closest?.('[data-popup-barras]')) {
+    if (target.closest?.('[data-popup-barras]') || target.closest?.('[data-popup-contexto]')) {
       return;
     }
     if (this.seleccionada() !== null) {
       this.cerrar();
     }
+    if (this.contextoAbierto()) {
+      this.contextoAbierto.set(false);
+    }
+  }
+
+  /** Abre/cierra la ventana flotante del contexto estructural (anclada al botón). */
+  protected alternarContexto(event: MouseEvent): void {
+    event.stopPropagation();
+    this.contextoAbierto.set(!this.contextoAbierto());
   }
 
   protected ancho(): number {
