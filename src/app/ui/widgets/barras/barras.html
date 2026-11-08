@@ -337,7 +337,13 @@
                         [style.background]="badge.rank === null ? null : colorResumen(badge.rank)"
                         [title]="badge.title"
                       >
-                        <span class="block text-[10px] leading-tight text-subtle">{{ badge.texto }}</span>
+                        <span
+                          class="block text-[10px] leading-tight"
+                          [style.color]="badge.rank === null ? null : legible(colorResumen(badge.rank))"
+                          [style.opacity]="badge.rank === null ? null : 0.85"
+                        >
+                          {{ badge.texto }}
+                        </span>
                         <span
                           class="block text-sm font-semibold leading-tight"
                           [style.color]="badge.rank === null ? null : legible(colorResumen(badge.rank))"
