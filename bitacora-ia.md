@@ -47,7 +47,7 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 
 **Datos compartidos con la IA (vigente para todas las entradas de esta fase)**: esquema de tablas (nombres y tipos de columnas), agregados y distribuciones de la tabla `consolidado` y las rutas de la API — **ningún registro con datos personales** (las tablas son agregadas municipales/mensuales o estructurales públicas).
 
-> **Estado de esta sección:** las entradas se diligencian una por una con el integrante: él indica sobre qué tema genera cada E, y se copia la ficha E-0 con la fecha/hora, la decisión y la verificación correspondiente. **E-1 a E-7 diligenciadas** — cubren todos los elementos «Con IA» y «Mixta» del inventario de la sección 2. El nivel Básico del Criterio 5 (≥ 3 entradas con decisión y justificación) queda cubierto de sobra.
+> **Estado de esta sección:** las entradas se diligencian una por una con el integrante: él indica sobre qué tema genera cada E, y se copia la ficha E-0 con la fecha/hora, la decisión y la verificación correspondiente. **E-1 a E-8 diligenciadas** — cubren todos los elementos «Con IA» y «Mixta» del inventario de la sección 2. El nivel Básico del Criterio 5 (≥ 3 entradas con decisión y justificación) queda cubierto de sobra.
 
 ### E-1 · Actualización del README con el consolidado del proyecto
 
@@ -140,7 +140,7 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 | **Qué devolvió la IA** | Botón (icono capas) junto al nombre del municipio; ventana flotante `absolute` anclada al botón (no `fixed`: no se desplaza respecto a su origen al hacer scroll) con grilla de 2 columnas de las variables estructurales coloreadas por severidad y tooltips con definiciones; carga única de `getConsolidadas()` en el dash y `contextoMunicipio` como `computed` reactivo sobre dos signals |
 | **Datos compartidos con la IA** | Esquema y agregados de la tabla `consolidado` (distribuciones, percentiles) — datos estructurales públicos, sin personales |
 | **Decisión** | Modificada |
-| **Justificación** | Dos fallos corregidos en el propio proceso: (a) el contexto se calculaba solo en el render de la selección — si `/consolidated` llegaba después, quedaba `null` sin recálculo → pasó a `computed` reactivo; (b) la ventana estaba `position: fixed` con coordenadas capturadas al abrir — se «descolgaba» al hacer scroll → se ancló al botón dentro de la tarjeta. Además se auditaron las escalas de las variables con la distribución real (ver E-9 de la candidatura de auditoría) |
+| **Justificación** | Dos fallos corregidos en el propio proceso: (a) el contexto se calculaba solo en el render de la selección — si `/consolidated` llegaba después, quedaba `null` sin recálculo → pasó a `computed` reactivo; (b) la ventana estaba `position: fixed` con coordenadas capturadas al abrir — se «descolgaba» al hacer scroll → se ancló al botón dentro de la tarjeta. Las escalas de las variables se auditaron con la distribución real (ver E-8) |
 | **Cómo se verificó** | Con catálogo posterior a la selección, los badges aparecen sin nueva selección; la ventana acompaña el scroll pegada a su tarjeta; 135/135 tests |
 | **Evidencia de origen** | Salida literal del `curl` con `"ruta no soportada: /consolidated"` y de la distribución de `pres_grup_armados` (sesión 2026-11-08) — copiar a `bitacora/E-5.png` |
 
@@ -182,13 +182,32 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 | **Cómo se verificó** | Revisión del documento por el integrante (editó a mano el título, los integrantes y el campo Proyecto — verificación humana registrada en el propio archivo) |
 | **Evidencia de origen** | Opcional (entrada Aceptada): esta misma conversación y las ediciones manuales del integrante en `bitacora-ia.md` |
 
+### E-8 · Auditoría de escalas: `pres_grup_armados` y los clústeres
+
+| Campo | Registro |
+| --- | --- |
+| **ID** | E-8 |
+| **Fecha y hora** | 2026-11-08 12:08 |
+| **Fase · paso** | F3 · Panel: clasificación de variables estructurales |
+| **Integrante que hizo la consulta** | _(integrante único de esta entrega)_ |
+| **Herramienta y modelo** | OpenCode · GLM-5.3-Flash (Z.ai) |
+| **Archivo afectado** | `barras.ts` · `dash.ts` · `variables_consolidadas.ts` |
+| **Objetivo de la consulta** | El integrante pidió explicar la clasificación de «presencia de grupos armados»; la respuesta puso en duda las escalas asumidas por la IA |
+| **Indicación (resumen)** | «como clasificas el tema de la presencia de grupos armados?» |
+| **Qué devolvió la IA** | La IA había asumido: (1) `pres_grup_armados` **binaria** 0/1 (badge «Presente» con `> 0`); (2) clústeres ordinales mapeados por inclusión de texto («Medio Alto» coloreado como «Alto»); (3) `VariablesConsolidadas.from` convertía `null` a `0` (`Number(null) = 0`). La verificación empírica sobre `/consolidated` (1120 filas) mostró que es un **índice continuo 0–1** con nulos reales, y que los clústeres tienen 5 niveles ordinales |
+| **Datos compartidos con la IA** | Distribución y percentiles de la tabla `consolidado` (agregados públicos, sin personales) |
+| **Decisión** | Modificada |
+| **Justificación** | El diccionario de datos no documenta la escala de `pres_grup_armados`; la decisión técnica se basó en la distribución real: p50 ≈ 0,10 · p90 ≈ 0,24 · máx 0,51 → «presencia establecida» solo existe con índice ≥ 0,5 (5 municipios de 1120); convertir 119 `null` en 0 viola la convención explícita del proyecto («0 = cero medido») |
+| **Cómo se verificó** | Antes: badge «Presente» en ~1000 municipios (todo valor > 0) y «Medio Alto» en rojo máximo (109 municipios sobreestimados). Después: badge solo en 5 municipios (≥ 0,5); «Medio Alto» = 0,75; las celdas de los 119 sin dato se ocultan en vez de mostrar «0,00»; 135/135 tests |
+| **Evidencia de origen** | Salida literal del análisis de distribución (sesión 2026-11-08): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514 · n 1120` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-8.png` |
+
 ## 4. Auditoría a la IA
 
 Obligatoria: se documenta al menos un caso en que la IA falló durante el propio proyecto y cómo se corrigió. Suele ser una de las entradas Modificada o Rechazada de la sección 3, desarrollada a fondo.
 
 **Tipo de auditoría** (se marca una):
 
-- [ ] **Real:** la IA produjo el fallo durante el proyecto.
+- [x] **Real:** la IA produjo el fallo durante el proyecto.
 - [ ] **Inducida y declarada:** la IA no produjo un fallo genuino; se le pidió revisar una parte del propio código (p. ej., el bucle o la evaluación) y se auditó su respuesta. Llega como máximo al nivel Autónomo del Criterio 5.
 
 **Qué evidencia corresponde a cada nivel**
@@ -201,11 +220,22 @@ Obligatoria: se documenta al menos un caso en que la IA falló durante el propio
 
 Lo que no es una auditoría: un error propio que la IA corrigió (se registra en la sección 3 como entrada Aceptada, pero no audita a la IA) y un caso que el curso ya publicó, narrado sin evidencia propia (queda como descripción genérica).
 
-> **Estado de esta sección: pendiente de elegir el caso.** Ya existen entradas Modificadas con evidencia: **E-3** (fallo `TABLA_CONSOLIDADO is not defined` detectado end-to-end, con salida literal) y **E-5** (desincronismo del catálogo reactivo y ventana `fixed` vs `absolute` — incluyendo la verificación de escalas de `pres_grup_armados` con la distribución real: índice continuo 0–1, 5 niveles ordinales y 119 `null`). Ambas son candidatas naturales para desarrollar a fondo la ficha del caso.
+> **Estado de esta sección: diligenciada.** Caso real desarrollado a fondo a partir de E-8 (nivel alcanzado: **Autónomo** — evidencia de origen, corrección y fundamento; la reproducción con métrica de decisión queda indicada por si se busca el nivel Estratégico).
 
 ### Ficha del caso
 
-_(Pendiente: se diligencia con la entrada Modificada/Rechazada que el integrante elija para la auditoría.)_
+| Campo | Registro |
+| --- | --- |
+| **Entrada de la bitácora** | E-8 (relacionadas: E-5 y E-3) |
+| **Contexto** | Fase 3, panel de despliegue: la IA había implementado la ventana de «contexto estructural» que muestra las variables de la tabla `consolidado` (`/consolidated`), coloreando las celdas por severidad. Al pedirle explicar la clasificación de «presencia de grupos armados», se puso en duda la escala asumida por la IA |
+| **Qué dijo la IA** | (1) Trató `pres_grup_armados` como variable **binaria** 0/1 y mostraba el badge «Gr. armados: Presente» con la condición `valor > 0`; (2) mapeó los clústeres ordinales por inclusión de texto (`includes('ALTO')`), con lo cual «Medio Alto» se coloreaba igual que «Alto» (rojo máximo); (3) el parser `VariablesConsolidadas.from()` convertía los `null` de los índices en `0` con `Number(null) = 0` |
+| **Evidencia de origen** | Salida literal de la consulta de distribución ejecutada sobre `/consolidated` (1120 filas): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-8.png` |
+| **Por qué estaba mal** | (1) La variable es un **índice continuo 0–1** de exposición/presencia, no una bandera: con `> 0` el badge aparecía en ~1000 de 1120 municipios (todos los que tienen dato), diluyendo la señal hasta el absurdo; solo 5 municipios superan 0,5 (presencia establecida en el percentil 99). (2) Los clústeres son **ordinales de 5 niveles** (Bajo · Medio Bajo · Medio · Medio Alto · Alto); el mapeo por inclusión de texto clasifica «Medio Alto» en el máximo — un error de orden que sobreestima la severidad de 109 municipios. (3) Convertir `null` en 0 viola la convención explícita del proyecto («0 = cero medido, NULL = sin dato observado») e inventa ceros para 119 municipios que no tienen el índice |
+| **Cómo se detectó** | Pregunta del usuario sobre la clasificación → decisión de no defender la suposición y verificarla empíricamente: consulta de la distribución real vía el propio endpoint `/consolidated` (distintos, percentiles, nulos) y comparación con lo que el panel pintaba |
+| **Corrección aplicada** | (1) Nueva celda «Índice armados» con el valor continuo (color por umbrales 0,3 / 0,5) y el badge «Gr. armados: Sí» reservado a índice ≥ 0,5 (`barras.ts`, `dash.ts`); (2) `escala()` con los 5 niveles ordinales exactos y orden de comparación que no colapsa «Medio Alto» con «Alto» (`barras.ts`); (3) `numONulo()` en `VariablesConsolidadas.from` para `pres_grup_armados` y `victimizacion_seguridad`, y las celdas de municipios sin dato se ocultan en vez de mostrar «0,00» (`variables_consolidadas.ts`, `dash.ts`) |
+| **Reproducción** (la exige el nivel Estratégico) | _(No aplicada como medición de decisión ML: la verificación se hizo con la distribución real del endpoint — ver «Resultado de la medición». Si se busca el nivel Estratégico, copiar el script de distribución a un cuaderno ejecutando la versión anterior del código y la corregida sobre el mismo `consolidado`, midiendo p. ej. precisión del badge «Presente» contra una lista de municipios con presencia confirmada)_ |
+| **Resultado de la medición** | Antes: badge «Presente» en ~1000 municipios (todo valor > 0); «Medio Alto» = rojo máximo (109 municipios sobreestimados); 119 municipios con «0,00» inventado. Después: badge solo en 5 municipios (≥ 0,5); «Medio Alto» = 0,75; celdas ocultas para los 119 sin dato. 135/135 tests del panel |
+| **Lección** | No asumir la escala de una variable: verificarla con la distribución real (distintos, percentiles, nulos) antes de clasificarla o colorearla. La IA tiende a imponer la interpretación más simple (binaria) y a resolver vacíos con conversiones numéricas silenciosas (`Number(null) = 0`); en este proyecto, donde «0 = cero medido» es una directiva explícita, ese patrón fabrica datos. Regla adoptada: toda variable nueva del contexto estructural se audita con un análisis de distribución antes de entrar al panel |
 
 ---
 
