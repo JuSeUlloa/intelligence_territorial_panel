@@ -6,6 +6,10 @@ Construido con **Angular 22 · Tailwind CSS 4 · Mapbox GL** y un **BFF ligero
 (Node/Vercel Functions)** que consulta el SQL warehouse de Databricks,
 documentado con **Swagger UI** y con **exportación de reportes (CSV/XLSX)**.
 
+> 📋 **Bitácora de IA**: el registro del uso de IA generativa en la Fase 3
+> (interacciones, decisiones y auditoría) está en
+> [`bitacora-ia.md`](bitacora-ia.md).
+
 ---
 
 ## Flujo de datos
