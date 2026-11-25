@@ -47,7 +47,7 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 
 **Datos compartidos con la IA (vigente para todas las entradas de esta fase)**: esquema de tablas (nombres y tipos de columnas), agregados y distribuciones de la tabla `consolidado` y las rutas de la API — **ningún registro con datos personales** (las tablas son agregadas municipales/mensuales o estructurales públicas).
 
-> **Estado de esta sección:** las entradas se diligencian una por una con el integrante: él indica sobre qué tema genera cada E, y se copia la ficha E-0 con la fecha/hora, la decisión y la verificación correspondiente. **E-1 a E-6 diligenciadas** (las rutas `/bronze`·`/consolidated` y el contexto estructural del panel quedan descritos en el README y el Swagger, sin ficha propia a criterio del integrante). El nivel Básico del Criterio 5 (≥ 3 entradas con decisión y justificación) queda cubierto de sobra.
+> **Estado de esta sección:** las entradas se diligencian una por una con el integrante: él indica sobre qué tema genera cada E, y se copia la ficha E-0 con la fecha/hora, la decisión y la verificación correspondiente. **E-1 a E-5 diligenciadas** (las rutas `/bronze`·`/consolidated` y el contexto estructural del panel quedan descritos en el README y el Swagger, sin ficha propia a criterio del integrante). El nivel Básico del Criterio 5 (≥ 3 entradas con decisión y justificación) queda cubierto de sobra.
 
 ### E-1 · Actualización del README con el consolidado del proyecto
 
@@ -106,30 +106,11 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 | **Cómo se verificó** | `ng build` sin errores (bundle inicial solo +6 kB); 135/135 tests; reporte de prueba con un bloque cronológico por municipio (observados + 1 fila «Predicción») |
 | **Evidencia de origen** | conversación de la sesión 2026-10-24, OpenCode · GLM-5.3-Flash |
 
-### E-4 · Ajustes de gráficos, mapa y buscador del panel
+### E-4 · Bitácora de IA (documento Mixto, diligenciada con IA)
 
 | Campo | Registro |
 | --- | --- |
 | **ID** | E-4 |
-| **Fecha y hora** | 2026-11-03 → 2026-11-08 (varias sesiones) |
-| **Fase · paso** | F3 · Depuración del panel |
-| **Integrante que hizo la consulta** | Juan Sebastian Ulloa Parra |
-| **Herramienta y modelo** | OpenCode · GLM-5.3-Flash (Z.ai) |
-| **Archivo afectado** | `dash.ts/html` · `filters.ts/html` · `empy-page.*` · `kpi.ts` · `barras.ts` |
-| **Objetivo de la consulta** | Correcciones de visualización y UX reportadas en el uso del panel |
-| **Indicación (resumen)** | «hay forma que… el mes actual… no quede en 0» · «no quiero que el mapa se vea tan alejado al seleccionar departamento o municipio» · «hacer que geo-filter-panel… no quede sobre los demás elementos al hacer scroll» · «si aun no ha cargado la información en el typehead alertar» · «haz un maquetado para el componente de EmpyPage» · «cambia el icono del kpi de la tasa promedio» |
-| **Qué devolvió la IA** | (1) La serie mensual del mes en curso conserva la predicción (acumulada sin depender de `tasa_real > 0`, igual que la serie de barrio); (2) encuadre de mapa menos alejado (post-fit −1 nivel en vez de −2, caps 8/12); (3) `isolate` en la tarjeta del mapa para que el z-index del geo-filtro no tape la barra sticky de filtros; (4) typeahead con estados «cargando…» / error + reintentar en la etiqueta; (5) página 404 maquetada con el sistema de diseño; (6) icono del KPI tasa → línea de tendencia |
-| **Datos compartidos con la IA** | Código del panel — sin datos |
-| **Decisión** | Aceptada |
-| **Justificación** | Cada cambio corrige un defecto observable verificado en uso; el fix de la serie respeta la convención «no imputar ceros» (la real queda «s/d», la predicha sí existe) |
-| **Cómo se verificó** | 135/135 tests (incluido un test actualizado para el comportamiento nuevo del mes en curso: promedio 6,0 vs 0 anterior); build limpio en cada cambio; verificación visual del usuario en el panel |
-| **Evidencia de origen** | Opcional (entradas Aceptadas): conversaciones de las sesiones 2026-11-03, 2026-11-07 y 2026-11-08, OpenCode · GLM-5.3-Flash |
-
-### E-5 · Bitácora de IA (documento Mixto, diligenciada con IA)
-
-| Campo | Registro |
-| --- | --- |
-| **ID** | E-5 |
 | **Fecha y hora** | 2026-11-24 (sesión actual) |
 | **Fase · paso** | F3 · Documentación del entregable |
 | **Integrante que hizo la consulta** | Juan Sebastian Ulloa Parra |
@@ -137,18 +118,18 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 | **Archivo afectado** | `bitacora-ia.md` (elemento «Documentación — Mixto» del inventario de la sección 2) |
 | **Objetivo de la consulta** | Diligenciar la bitácora de IA del proyecto (entradas E-n, inventario de elementos arquitectónicos con IA/sin IA, auditoría) y enlazarla desde el README |
 | **Indicación (resumen)** | «quiero que me ayudes a diligenciar el bitacora-ia.md» → «antes de diligenciar los E yo te diga sobre que generarlos» → «el primer e… el de el readme» → «genera un E por cada elemento de la lista que tenga con IA o Mixta» |
-| **Qué devolvió la IA** | Secciones 1 y 2 diligenciadas (con el inventario por elemento arquitectónico marcando **Sin IA / Con IA / Mixto / Del integrante**), fichas E-1 a E-5 generadas solo sobre los temas indicados por el integrante, auditoría (sección 4) pendiente de elegir entre las entradas Modificadas |
+| **Qué devolvió la IA** | Secciones 1 y 2 diligenciadas (con el inventario por elemento arquitectónico marcando **Sin IA / Con IA / Mixto / Del integrante**), fichas E-n generadas solo sobre los temas indicados por el integrante, auditoría (sección 4) diligenciada con la entrada Modificada elegida |
 | **Datos compartidos con la IA** | Historia de la propia conversación de trabajo y estructura del repo — sin datos personales |
 | **Decisión** | Aceptada |
 | **Justificación** | La bitácora es un documento «Mixto» por definición: la IA estructura y redacta a partir del registro real de las sesiones; el integrante define los temas de cada entrada, revisa el contenido y es quien firma la declaración de uso. Automatizar la bitácora sin el control del integrante violaría su propósito (E-9 de la nota inicial del template: «el integrante indica sobre qué generarlas») |
 | **Cómo se verificó** | Revisión del documento por el integrante (editó a mano el título, los integrantes y el campo Proyecto — verificación humana registrada en el propio archivo) |
 | **Evidencia de origen** | Opcional (entrada Aceptada): esta misma conversación y las ediciones manuales del integrante en `bitacora-ia.md` |
 
-### E-6 · Auditoría de escalas: `pres_grup_armados` y los clústeres
+### E-5 · Auditoría de escalas: `pres_grup_armados` y los clústeres
 
 | Campo | Registro |
 | --- | --- |
-| **ID** | E-6 |
+| **ID** | E-5 |
 | **Fecha y hora** | 2026-11-08 12:08 |
 | **Fase · paso** | F3 · Panel: clasificación de variables estructurales |
 | **Integrante que hizo la consulta** | Juan Sebastian Ulloa Parra |
@@ -161,7 +142,7 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 | **Decisión** | Modificada |
 | **Justificación** | El diccionario de datos no documenta la escala de `pres_grup_armados`; la decisión técnica se basó en la distribución real: p50 ≈ 0,10 · p90 ≈ 0,24 · máx 0,51 → «presencia establecida» solo existe con índice ≥ 0,5 (5 municipios de 1120); convertir 119 `null` en 0 viola la convención explícita del proyecto («0 = cero medido») |
 | **Cómo se verificó** | Antes: badge «Presente» en ~1000 municipios (todo valor > 0) y «Medio Alto» en rojo máximo (109 municipios sobreestimados). Después: badge solo en 5 municipios (≥ 0,5); «Medio Alto» = 0,75; las celdas de los 119 sin dato se ocultan en vez de mostrar «0,00»; 135/135 tests |
-| **Evidencia de origen** | Salida literal del análisis de distribución (sesión 2026-11-08): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514 · n 1120` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-6.png` |
+| **Evidencia de origen** | Salida literal del análisis de distribución (sesión 2026-11-08): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514 · n 1120` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-5.png` |
 
 ## 4. Auditoría a la IA
 
@@ -182,16 +163,16 @@ Obligatoria: se documenta al menos un caso en que la IA falló durante el propio
 
 Lo que no es una auditoría: un error propio que la IA corrigió (se registra en la sección 3 como entrada Aceptada, pero no audita a la IA) y un caso que el curso ya publicó, narrado sin evidencia propia (queda como descripción genérica).
 
-> **Estado de esta sección: diligenciada.** Caso real desarrollado a fondo a partir de E-6 (nivel alcanzado: **Autónomo** — evidencia de origen, corrección y fundamento; la reproducción con métrica de decisión queda indicada por si se busca el nivel Estratégico).
+> **Estado de esta sección: diligenciada.** Caso real desarrollado a fondo a partir de E-5 (nivel alcanzado: **Autónomo** — evidencia de origen, corrección y fundamento; la reproducción con métrica de decisión queda indicada por si se busca el nivel Estratégico).
 
 ### Ficha del caso
 
 | Campo | Registro |
 | --- | --- |
-| **Entrada de la bitácora** | E-6 |
+| **Entrada de la bitácora** | E-5 |
 | **Contexto** | Fase 3, panel de despliegue: la IA había implementado la ventana de «contexto estructural» que muestra las variables de la tabla `consolidado` (`/consolidated`), coloreando las celdas por severidad. Al pedirle explicar la clasificación de «presencia de grupos armados», se puso en duda la escala asumida por la IA |
 | **Qué dijo la IA** | (1) Trató `pres_grup_armados` como variable **binaria** 0/1 y mostraba el badge «Gr. armados: Presente» con la condición `valor > 0`; (2) mapeó los clústeres ordinales por inclusión de texto (`includes('ALTO')`), con lo cual «Medio Alto» se coloreaba igual que «Alto» (rojo máximo); (3) el parser `VariablesConsolidadas.from()` convertía los `null` de los índices en `0` con `Number(null) = 0` |
-| **Evidencia de origen** | Salida literal de la consulta de distribución ejecutada sobre `/consolidated` (1120 filas): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-6.png` |
+| **Evidencia de origen** | Salida literal de la consulta de distribución ejecutada sobre `/consolidated` (1120 filas): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-5.png` |
 | **Por qué estaba mal** | (1) La variable es un **índice continuo 0–1** de exposición/presencia, no una bandera: con `> 0` el badge aparecía en ~1000 de 1120 municipios (todos los que tienen dato), diluyendo la señal hasta el absurdo; solo 5 municipios superan 0,5 (presencia establecida en el percentil 99). (2) Los clústeres son **ordinales de 5 niveles** (Bajo · Medio Bajo · Medio · Medio Alto · Alto); el mapeo por inclusión de texto clasifica «Medio Alto» en el máximo — un error de orden que sobreestima la severidad de 109 municipios. (3) Convertir `null` en 0 viola la convención explícita del proyecto («0 = cero medido, NULL = sin dato observado») e inventa ceros para 119 municipios que no tienen el índice |
 | **Cómo se detectó** | Pregunta del usuario sobre la clasificación → decisión de no defender la suposición y verificarla empíricamente: consulta de la distribución real vía el propio endpoint `/consolidated` (distintos, percentiles, nulos) y comparación con lo que el panel pintaba |
 | **Corrección aplicada** | (1) Nueva celda «Índice armados» con el valor continuo (color por umbrales 0,3 / 0,5) y el badge «Gr. armados: Sí» reservado a índice ≥ 0,5 (`barras.ts`, `dash.ts`); (2) `escala()` con los 5 niveles ordinales exactos y orden de comparación que no colapsa «Medio Alto» con «Alto» (`barras.ts`); (3) `numONulo()` en `VariablesConsolidadas.from` para `pres_grup_armados` y `victimizacion_seguridad`, y las celdas de municipios sin dato se ocultan en vez de mostrar «0,00» (`variables_consolidadas.ts`, `dash.ts`) |
