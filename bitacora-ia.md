@@ -47,7 +47,7 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 
 **Datos compartidos con la IA (vigente para todas las entradas de esta fase)**: esquema de tablas (nombres y tipos de columnas), agregados y distribuciones de la tabla `consolidado` y las rutas de la API — **ningún registro con datos personales** (las tablas son agregadas municipales/mensuales o estructurales públicas).
 
-> **Estado de esta sección:** las entradas se diligencian una por una con el integrante: él indica sobre qué tema genera cada E, y se copia la ficha E-0 con la fecha/hora, la decisión y la verificación correspondiente. **E-1 a E-5 diligenciadas** (las rutas `/bronze`·`/consolidated` y el contexto estructural del panel quedan descritos en el README y el Swagger, sin ficha propia a criterio del integrante). El nivel Básico del Criterio 5 (≥ 3 entradas con decisión y justificación) queda cubierto de sobra.
+> **Estado de esta sección:** las entradas se diligencian una por una con el integrante: él indica sobre qué tema genera cada E, y se copia la ficha E-0 con la fecha/hora, la decisión y la verificación correspondiente. **E-1 a E-4 diligenciadas** (las rutas `/bronze`·`/consolidated` y el contexto estructural del panel quedan descritos en el README y el Swagger, sin ficha propia a criterio del integrante). El nivel Básico del Criterio 5 (≥ 3 entradas con decisión y justificación) queda cubierto de sobra; **para la auditoría obligatoria de la sección 4 hace falta una entrada Modificada o Rechazada**.
 
 ### E-1 · Actualización del README con el consolidado del proyecto
 
@@ -111,38 +111,19 @@ Cada interacción se marca como **Aceptada · Modificada · Rechazada**. La evid
 | Campo | Registro |
 | --- | --- |
 | **ID** | E-4 |
-| **Fecha y hora** | 2026-11-24 (sesión actual) |
-| **Fase · paso** | F3 · Documentación del entregable |
+| **Fecha y hora** | 2026-11-9 |
+| **Fase · paso** | Documentación del entregable |
 | **Integrante que hizo la consulta** | Juan Sebastian Ulloa Parra |
 | **Herramienta y modelo** | OpenCode · GLM-5.3-Flash (Z.ai) |
 | **Archivo afectado** | `bitacora-ia.md` (elemento «Documentación — Mixto» del inventario de la sección 2) |
 | **Objetivo de la consulta** | Diligenciar la bitácora de IA del proyecto (entradas E-n, inventario de elementos arquitectónicos con IA/sin IA, auditoría) y enlazarla desde el README |
-| **Indicación (resumen)** | «quiero que me ayudes a diligenciar el bitacora-ia.md» → «antes de diligenciar los E yo te diga sobre que generarlos» → «el primer e… el de el readme» → «genera un E por cada elemento de la lista que tenga con IA o Mixta» |
-| **Qué devolvió la IA** | Secciones 1 y 2 diligenciadas (con el inventario por elemento arquitectónico marcando **Sin IA / Con IA / Mixto / Del integrante**), fichas E-n generadas solo sobre los temas indicados por el integrante, auditoría (sección 4) diligenciada con la entrada Modificada elegida |
+| **Indicación (resumen)** | «quiero diligenciar el bitacora-ia.md» → « los identificadores inician por E-» → «genera un E por cada elemento de la lista que tenga con IA o  sea Mixto» |
+| **Qué devolvió la IA** | Secciones 1 y 2 diligenciadas (con el inventario por elemento arquitectónico marcando **Sin IA / Con IA / Mixto / Del integrante**), fichas E-n generadas solo sobre los temas indicados por el integrante, auditoría (sección 4) pendiente de diligenciar con la entrada Modificada elegida |
 | **Datos compartidos con la IA** | Historia de la propia conversación de trabajo y estructura del repo — sin datos personales |
 | **Decisión** | Aceptada |
-| **Justificación** | La bitácora es un documento «Mixto» por definición: la IA estructura y redacta a partir del registro real de las sesiones; el integrante define los temas de cada entrada, revisa el contenido y es quien firma la declaración de uso. Automatizar la bitácora sin el control del integrante violaría su propósito (E-9 de la nota inicial del template: «el integrante indica sobre qué generarlas») |
-| **Cómo se verificó** | Revisión del documento por el integrante (editó a mano el título, los integrantes y el campo Proyecto — verificación humana registrada en el propio archivo) |
-| **Evidencia de origen** | Opcional (entrada Aceptada): esta misma conversación y las ediciones manuales del integrante en `bitacora-ia.md` |
-
-### E-5 · Auditoría de escalas: `pres_grup_armados` y los clústeres
-
-| Campo | Registro |
-| --- | --- |
-| **ID** | E-5 |
-| **Fecha y hora** | 2026-11-08 12:08 |
-| **Fase · paso** | F3 · Panel: clasificación de variables estructurales |
-| **Integrante que hizo la consulta** | Juan Sebastian Ulloa Parra |
-| **Herramienta y modelo** | OpenCode · GLM-5.3-Flash (Z.ai) |
-| **Archivo afectado** | `barras.ts` · `dash.ts` · `variables_consolidadas.ts` |
-| **Objetivo de la consulta** | El integrante pidió explicar la clasificación de «presencia de grupos armados»; la respuesta puso en duda las escalas asumidas por la IA |
-| **Indicación (resumen)** | «como clasificas el tema de la presencia de grupos armados?» |
-| **Qué devolvió la IA** | La IA había asumido: (1) `pres_grup_armados` **binaria** 0/1 (badge «Presente» con `> 0`); (2) clústeres ordinales mapeados por inclusión de texto («Medio Alto» coloreado como «Alto»); (3) `VariablesConsolidadas.from` convertía `null` a `0` (`Number(null) = 0`). La verificación empírica sobre `/consolidated` (1120 filas) mostró que es un **índice continuo 0–1** con nulos reales, y que los clústeres tienen 5 niveles ordinales |
-| **Datos compartidos con la IA** | Distribución y percentiles de la tabla `consolidado` (agregados públicos, sin personales) |
-| **Decisión** | Modificada |
-| **Justificación** | El diccionario de datos no documenta la escala de `pres_grup_armados`; la decisión técnica se basó en la distribución real: p50 ≈ 0,10 · p90 ≈ 0,24 · máx 0,51 → «presencia establecida» solo existe con índice ≥ 0,5 (5 municipios de 1120); convertir 119 `null` en 0 viola la convención explícita del proyecto («0 = cero medido») |
-| **Cómo se verificó** | Antes: badge «Presente» en ~1000 municipios (todo valor > 0) y «Medio Alto» en rojo máximo (109 municipios sobreestimados). Después: badge solo en 5 municipios (≥ 0,5); «Medio Alto» = 0,75; las celdas de los 119 sin dato se ocultan en vez de mostrar «0,00»; 135/135 tests |
-| **Evidencia de origen** | Salida literal del análisis de distribución (sesión 2026-11-08): `pres_grup_armados: 0.07488701 → 193 \| null → 119 \| 0.08572472 → 51 \| …` · percentiles `p50 0.0976 · p90 0.245 · max 0.514 · n 1120` · `cluster_rv: Medio Bajo → 376 \| Bajo → 342 \| Medio → 207 \| Medio Alto → 109 \| Alto → 86` — copiar a `bitacora/E-5.png` |
+| **Justificación** | La bitácora es un documento «Mixto» por definición: la IA estructura y redacta a partir del registro real de las sesiones; el integrante define los temas de cada entrada, revisa el contenido y es quien firma la declaración de uso. Automatizar la bitácora sin el control del integrante violaría su propósito  |
+| **Cómo se verificó** | Revisión del documento por el integrante |
+| **Evidencia de origen** | Opcional : esta misma conversación y las ediciones manuales del integrante en `bitacora-ia.md` |
 
 ## 4. Auditoría a la IA
 
@@ -150,7 +131,7 @@ Obligatoria: se documenta al menos un caso en que la IA falló durante el propio
 
 **Tipo de auditoría** (se marca una):
 
-- [x] **Real:** la IA produjo el fallo durante el proyecto.
+- [ ] **Real:** la IA produjo el fallo durante el proyecto.
 - [ ] **Inducida y declarada:** la IA no produjo un fallo genuino; se le pidió revisar una parte del propio código (p. ej., el bucle o la evaluación) y se auditó su respuesta. Llega como máximo al nivel Autónomo del Criterio 5.
 
 **Qué evidencia corresponde a cada nivel**
@@ -163,7 +144,7 @@ Obligatoria: se documenta al menos un caso en que la IA falló durante el propio
 
 Lo que no es una auditoría: un error propio que la IA corrigió (se registra en la sección 3 como entrada Aceptada, pero no audita a la IA) y un caso que el curso ya publicó, narrado sin evidencia propia (queda como descripción genérica).
 
-> **Estado de esta sección: diligenciada.** Caso real desarrollado a fondo a partir de E-5 (nivel alcanzado: **Autónomo** — evidencia de origen, corrección y fundamento; la reproducción con métrica de decisión queda indicada por si se busca el nivel Estratégico).
+> **Estado de esta sección: pendiente.** La auditoría es **obligatoria**: hace falta una entrada **Modificada o Rechazada** en la sección 3 para desarrollar el caso. Nota: el material del caso de escalas (`pres_grup_armados` como índice continuo 0–1, clústeres ordinales de 5 niveles y `null`→0) está documentado en el README y en la conversación de la sesión del 2026-11-08 — si se quiere conservar, basta re-registrarlo como entrada Modificada y desarrollar la ficha sobre él.
 
 ### Ficha del caso
 
